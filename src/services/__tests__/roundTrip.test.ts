@@ -17,7 +17,12 @@ function parseBlockXml(xmlStr: string): {
   const fieldRegex = /<field name="([^"]+)">([^<]*)<\/field>/g;
   let m;
   while ((m = fieldRegex.exec(xmlStr)) !== null) {
-    fields[m[1]!] = m[2]!.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+    fields[m[1]!] = m[2]!
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&amp;/g, '&');
   }
   return {
     type,
