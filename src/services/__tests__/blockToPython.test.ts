@@ -137,7 +137,11 @@ describe('blockToCode', () => {
     const errors: TranslationError[] = [];
     const left = makeBlock(PYTHON_BLOCK_TYPES.BOOLEAN, { VALUE: 'True' });
     const right = makeBlock(PYTHON_BLOCK_TYPES.BOOLEAN, { VALUE: 'False' });
-    const block = makeBlock(PYTHON_BLOCK_TYPES.BOOL_OP, { OP: 'and' }, { LEFT: left, RIGHT: right });
+    const block = makeBlock(
+      PYTHON_BLOCK_TYPES.BOOL_OP,
+      { OP: 'and' },
+      { LEFT: left, RIGHT: right },
+    );
     expect(blockToCode(block, errors)).toBe('(True and False)');
   });
 
@@ -253,13 +257,49 @@ describe('WHILE block', () => {
   it('converts WHILE block', () => {
     const errors: TranslationError[] = [];
     const cond = makeBlock(PYTHON_BLOCK_TYPES.BOOLEAN, { VALUE: 'True' });
-    const body = makeBlock(PYTHON_BLOCK_TYPES.ASSIGN, { VAR: 'done' }, {
-      VALUE: makeBlock(PYTHON_BLOCK_TYPES.BOOLEAN, { VALUE: 'True' }),
-    });
+    const body = makeBlock(
+      PYTHON_BLOCK_TYPES.ASSIGN,
+      { VAR: 'done' },
+      {
+        VALUE: makeBlock(PYTHON_BLOCK_TYPES.BOOLEAN, { VALUE: 'True' }),
+      },
+    );
     const block = makeBlock(PYTHON_BLOCK_TYPES.WHILE, {}, { CONDITION: cond, BODY: body });
     const result = blockToCode(block, errors);
     expect(result).toContain('while True:');
     expect(result).toContain('    done = True');
+  });
+
+  it('converts WHILE_ELSE block', () => {
+    const errors: TranslationError[] = [];
+    const cond = makeBlock(PYTHON_BLOCK_TYPES.BOOLEAN, { VALUE: 'False' });
+    const body = makeBlock(
+      PYTHON_BLOCK_TYPES.PRINT,
+      {},
+      {
+        VALUE: makeBlock(PYTHON_BLOCK_TYPES.STRING, { VALUE: 'loop' }),
+      },
+    );
+    const elseBody = makeBlock(
+      PYTHON_BLOCK_TYPES.PRINT,
+      {},
+      {
+        VALUE: makeBlock(PYTHON_BLOCK_TYPES.STRING, { VALUE: 'done' }),
+      },
+    );
+    const block = makeBlock(
+      PYTHON_BLOCK_TYPES.WHILE_ELSE,
+      {},
+      {
+        CONDITION: cond,
+        BODY: body,
+        ELSE: elseBody,
+      },
+    );
+    const result = blockToCode(block, errors);
+    expect(result).toContain('while False:');
+    expect(result).toContain('else:');
+    expect(result).toContain('print("done")');
   });
 });
 
@@ -267,23 +307,114 @@ describe('FOR block', () => {
   it('converts FOR block', () => {
     const errors: TranslationError[] = [];
     const iter = makeBlock(PYTHON_BLOCK_TYPES.LIST, {}, { ITEMS: null });
-    const body = makeBlock(PYTHON_BLOCK_TYPES.PRINT, {}, {
-      VALUE: makeBlock(PYTHON_BLOCK_TYPES.VARIABLE, { NAME: 'i' }),
-    });
+    const body = makeBlock(
+      PYTHON_BLOCK_TYPES.PRINT,
+      {},
+      {
+        VALUE: makeBlock(PYTHON_BLOCK_TYPES.VARIABLE, { NAME: 'i' }),
+      },
+    );
     const block = makeBlock(PYTHON_BLOCK_TYPES.FOR, { VAR: 'i' }, { ITER: iter, BODY: body });
     const result = blockToCode(block, errors);
     expect(result).toContain('for i in []');
     expect(result).toContain('    print(i)');
+  });
+
+  it('converts FOR_ELSE block', () => {
+    const errors: TranslationError[] = [];
+    const iter = makeBlock(PYTHON_BLOCK_TYPES.LIST, {}, { ADD0: null });
+    const body = makeBlock(
+      PYTHON_BLOCK_TYPES.PRINT,
+      {},
+      {
+        VALUE: makeBlock(PYTHON_BLOCK_TYPES.VARIABLE, { NAME: 'i' }),
+      },
+    );
+    const elseBody = makeBlock(
+      PYTHON_BLOCK_TYPES.PRINT,
+      {},
+      {
+        VALUE: makeBlock(PYTHON_BLOCK_TYPES.STRING, { VALUE: 'done' }),
+      },
+    );
+    const block = makeBlock(
+      PYTHON_BLOCK_TYPES.FOR_ELSE,
+      { VAR: 'i' },
+      {
+        ITER: iter,
+        BODY: body,
+        ELSE: elseBody,
+      },
+    );
+    const result = blockToCode(block, errors);
+    expect(result).toContain('for i in []:');
+    expect(result).toContain('else:');
+    expect(result).toContain('print("done")');
+  });
+});
+
+describe('additional expression blocks', () => {
+  it('converts variadic FUNC_CALL args', () => {
+    const errors: TranslationError[] = [];
+    const a0 = makeBlock(PYTHON_BLOCK_TYPES.NUMBER, { VALUE: '1' });
+    const a1 = makeBlock(PYTHON_BLOCK_TYPES.NUMBER, { VALUE: '2' });
+    const call = makeBlock(PYTHON_BLOCK_TYPES.FUNC_CALL, { NAME: 'f' }, { ARG0: a0, ARG1: a1 });
+    expect(blockToCode(call, errors)).toBe('f(1, 2)');
+  });
+
+  it('converts TUPLE block', () => {
+    const errors: TranslationError[] = [];
+    const t = makeBlock(
+      PYTHON_BLOCK_TYPES.TUPLE,
+      {},
+      {
+        ADD0: makeBlock(PYTHON_BLOCK_TYPES.NUMBER, { VALUE: '1' }),
+        ADD1: makeBlock(PYTHON_BLOCK_TYPES.NUMBER, { VALUE: '2' }),
+      },
+    );
+    expect(blockToCode(t, errors)).toBe('(1, 2)');
+  });
+
+  it('converts COMPREHENSION block', () => {
+    const errors: TranslationError[] = [];
+    const c = makeBlock(PYTHON_BLOCK_TYPES.COMPREHENSION, {
+      KIND: 'list',
+      CODE: 'x for x in xs if x % 2 == 0',
+    });
+    expect(blockToCode(c, errors)).toBe('[x for x in xs if x % 2 == 0]');
+  });
+
+  it('converts ATTR and INDEX blocks', () => {
+    const errors: TranslationError[] = [];
+    const obj = makeBlock(PYTHON_BLOCK_TYPES.VARIABLE, { NAME: 'data' });
+    const attr = makeBlock(PYTHON_BLOCK_TYPES.ATTR, { ATTR: 'items' }, { OBJ: obj });
+    const idx = makeBlock(
+      PYTHON_BLOCK_TYPES.INDEX,
+      {},
+      {
+        VALUE: attr,
+        INDEX: makeBlock(PYTHON_BLOCK_TYPES.NUMBER, { VALUE: '0' }),
+      },
+    );
+    expect(blockToCode(idx, errors)).toBe('data.items[0]');
   });
 });
 
 describe('FUNC_DEF block', () => {
   it('converts function definition', () => {
     const errors: TranslationError[] = [];
-    const body = makeBlock(PYTHON_BLOCK_TYPES.RETURN, {}, {
-      VALUE: makeBlock(PYTHON_BLOCK_TYPES.NUMBER, { VALUE: '0' }),
-    });
-    const block = makeBlock(PYTHON_BLOCK_TYPES.FUNC_DEF, { NAME: 'greet', PARAMS: 'name' }, { BODY: body });
+    const body = makeBlock(
+      PYTHON_BLOCK_TYPES.RETURN,
+      {},
+      {
+        VALUE: makeBlock(PYTHON_BLOCK_TYPES.NUMBER, { VALUE: '0' }),
+      },
+    );
+    const block = makeBlock(
+      PYTHON_BLOCK_TYPES.FUNC_DEF,
+      { NAME: 'greet', PARAMS: 'name' },
+      { BODY: body },
+    );
     const result = blockToCode(block, errors);
     expect(result).toContain('def greet(name):');
     expect(result).toContain('    return 0');
@@ -298,9 +429,13 @@ describe('workspaceToPython', () => {
   });
 
   it('converts workspace with blocks', () => {
-    const printBlock = makeBlock(PYTHON_BLOCK_TYPES.PRINT, {}, {
-      VALUE: makeBlock(PYTHON_BLOCK_TYPES.STRING, { VALUE: 'hello' }),
-    });
+    const printBlock = makeBlock(
+      PYTHON_BLOCK_TYPES.PRINT,
+      {},
+      {
+        VALUE: makeBlock(PYTHON_BLOCK_TYPES.STRING, { VALUE: 'hello' }),
+      },
+    );
     const workspace = {
       getTopBlocks: () => [printBlock],
     };

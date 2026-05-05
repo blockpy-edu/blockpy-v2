@@ -37,9 +37,16 @@ function makeBlock(
   fields: Record<string, string>,
   values: Record<string, string>,
   statements: Record<string, string>,
+  mutations?: Record<string, string>,
   next?: string,
 ): string {
   let xml = `<block type="${type}">`;
+  if (mutations && Object.keys(mutations).length > 0) {
+    const attrs = Object.entries(mutations)
+      .map(([k, v]) => `${k}="${escapeXml(v)}"`)
+      .join(' ');
+    xml += `<mutation ${attrs}></mutation>`;
+  }
   for (const [k, v] of Object.entries(fields)) {
     xml += `<field name="${k}">${escapeXml(v)}</field>`;
   }
@@ -181,6 +188,15 @@ function comprehensionKind(nodeType: string): string {
   }
 }
 
+function extractCallArguments(
+  argListNode: SyntaxNode,
+  source: string,
+  errors: TranslationError[],
+): string[] {
+  const args = meaningfulChildren(argListNode);
+  return args.map((arg) => exprToBlock(arg, source, errors));
+}
+
 const ARITH_OPS: Record<string, string> = {
   '+': PYTHON_BLOCK_TYPES.ADD,
   '-': PYTHON_BLOCK_TYPES.SUBTRACT,
@@ -267,37 +283,49 @@ function exprToBlock(node: SyntaxNode, source: string, errors: TranslationError[
       const funcNode = children[0]!;
       const funcName = nodeText(funcNode, source);
       const argListNode = childByType(node, 'ArgList');
-      let arg0 = '';
+      let argBlocks: string[] = [];
       if (argListNode) {
-        const argChildren = meaningfulChildren(argListNode);
-        if (argChildren.length > 0) {
-          arg0 = exprToBlock(argChildren[0]!, source, errors);
-        }
+        argBlocks = extractCallArguments(argListNode, source, errors);
       }
       if (funcName === 'print') {
-        return makeBlock(PYTHON_BLOCK_TYPES.PRINT, {}, arg0 ? { VALUE: arg0 } : {}, {});
+        return makeBlock(
+          PYTHON_BLOCK_TYPES.PRINT,
+          {},
+          argBlocks[0] ? { VALUE: argBlocks[0] } : {},
+          {},
+        );
       }
+      const values: Record<string, string> = {};
+      argBlocks.forEach((arg, index) => {
+        values[`ARG${index}`] = arg;
+      });
       return makeBlock(
         PYTHON_BLOCK_TYPES.FUNC_CALL,
         { NAME: funcName },
-        arg0 ? { ARG0: arg0 } : {},
+        values,
         {},
+        { argc: String(argBlocks.length) },
       );
     }
     case 'ArrayExpression': {
       const items = meaningfulChildren(node);
-      const itemXml = items.length > 0 ? exprToBlock(items[0]!, source, errors) : '';
-      return makeBlock(PYTHON_BLOCK_TYPES.LIST, {}, itemXml ? { ITEMS: itemXml } : {}, {});
+      const values: Record<string, string> = {};
+      items.forEach((item, index) => {
+        values[`ADD${index}`] = exprToBlock(item, source, errors);
+      });
+      return makeBlock(PYTHON_BLOCK_TYPES.LIST, {}, values, {}, { argc: String(items.length) });
     }
     case 'TupleExpression': {
       const items = meaningfulChildren(node);
-      const itemXml = items.length > 0 ? exprToBlock(items[0]!, source, errors) : '';
-      return makeBlock(PYTHON_BLOCK_TYPES.TUPLE, {}, itemXml ? { ITEMS: itemXml } : {}, {});
+      const values: Record<string, string> = {};
+      items.forEach((item, index) => {
+        values[`ADD${index}`] = exprToBlock(item, source, errors);
+      });
+      return makeBlock(PYTHON_BLOCK_TYPES.TUPLE, {}, values, {}, { argc: String(items.length) });
     }
     case 'DictionaryExpression': {
-      const parts = meaningfulChildren(node);
-      const entryXml = parts.length > 0 ? exprToBlock(parts[0]!, source, errors) : '';
-      return makeBlock(PYTHON_BLOCK_TYPES.DICT, {}, entryXml ? { ITEMS: entryXml } : {}, {});
+      // Preserve dictionary code as text until key/value pair blocks are introduced.
+      return makeBlock(PYTHON_BLOCK_TYPES.DICT, { CODE: nodeText(node, source) }, {}, {});
     }
     case 'MemberExpression': {
       const parts = meaningfulChildren(node);
@@ -447,11 +475,24 @@ function stmtToBlocksNoChain(node: SyntaxNode, source: string, errors: Translati
           c.type.name !== 'Body' &&
           c.type.name !== '⚠',
       );
-      const bodyNode = childByType(node, 'Body');
+      const bodyNodes = childrenByType(node, 'Body');
+      const hasElseToken = children.some((c) => c.type.name === 'else');
+      const bodyNode = bodyNodes[0] ?? null;
+      const elseBodyNode =
+        hasElseToken && bodyNodes.length > 1 ? bodyNodes[bodyNodes.length - 1] : null;
       const condXml = condNode
         ? exprToBlock(condNode, source, errors)
         : makeBlock(PYTHON_BLOCK_TYPES.BOOLEAN, { VALUE: 'True' }, {}, {});
       const bodyXml = bodyNode ? statementsInBody(bodyNode, source, errors) : '';
+      if (elseBodyNode) {
+        const elseXml = statementsInBody(elseBodyNode, source, errors);
+        return makeBlock(
+          PYTHON_BLOCK_TYPES.WHILE_ELSE,
+          {},
+          { CONDITION: condXml },
+          { BODY: bodyXml, ...(elseXml ? { ELSE: elseXml } : {}) },
+        );
+      }
       return makeBlock(PYTHON_BLOCK_TYPES.WHILE, {}, { CONDITION: condXml }, { BODY: bodyXml });
     }
     case 'ForStatement': {
@@ -462,7 +503,11 @@ function stmtToBlocksNoChain(node: SyntaxNode, source: string, errors: Translati
         return makeCstStmtBlock(node, source);
       }
       const varNode = children[inIdx - 1]!;
-      const bodyNode = childByType(node, 'Body');
+      const bodyNodes = childrenByType(node, 'Body');
+      const hasElseToken = children.some((c) => c.type.name === 'else');
+      const bodyNode = bodyNodes[0] ?? null;
+      const elseBodyNode =
+        hasElseToken && bodyNodes.length > 1 ? bodyNodes[bodyNodes.length - 1] : null;
       // iter is between 'in' and 'Body'
       const bodyIdx = children.findIndex((c) => c.type.name === 'Body');
       const iterNode = bodyIdx > inIdx + 1 ? children[inIdx + 1] : null;
@@ -471,6 +516,15 @@ function stmtToBlocksNoChain(node: SyntaxNode, source: string, errors: Translati
         ? exprToBlock(iterNode, source, errors)
         : makeBlock(PYTHON_BLOCK_TYPES.LIST, {}, {}, {});
       const bodyXml = bodyNode ? statementsInBody(bodyNode, source, errors) : '';
+      if (elseBodyNode) {
+        const elseXml = statementsInBody(elseBodyNode, source, errors);
+        return makeBlock(
+          PYTHON_BLOCK_TYPES.FOR_ELSE,
+          { VAR: varName },
+          { ITER: iterXml },
+          { BODY: bodyXml, ...(elseXml ? { ELSE: elseXml } : {}) },
+        );
+      }
       return makeBlock(
         PYTHON_BLOCK_TYPES.FOR,
         { VAR: varName },

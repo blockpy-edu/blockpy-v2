@@ -9,6 +9,23 @@ export interface BlocklyAPI {
   [key: string]: any;
 }
 
+interface MutableBlock {
+  argCount_: number;
+  setColour: (colour: number) => void;
+  setOutput: (newBoolean: boolean, check?: string | string[] | null) => void;
+  setPreviousStatement: (newBoolean: boolean) => void;
+  setNextStatement: (newBoolean: boolean) => void;
+  setTooltip: (text: string) => void;
+  setInputsInline: (newBoolean: boolean) => void;
+  appendDummyInput: (name?: string) => {
+    appendField: (...args: unknown[]) => { appendField: (...args: unknown[]) => unknown };
+  };
+  appendValueInput: (name: string) => unknown;
+  getInput: (name: string) => unknown;
+  removeInput: (name: string) => void;
+  updateShape_: () => void;
+}
+
 export const PYTHON_BLOCK_TYPES = {
   NUMBER: 'py_number',
   STRING: 'py_string',
@@ -27,7 +44,9 @@ export const PYTHON_BLOCK_TYPES = {
   NOT: 'py_not',
   IF: 'py_if',
   WHILE: 'py_while',
+  WHILE_ELSE: 'py_while_else',
   FOR: 'py_for',
+  FOR_ELSE: 'py_for_else',
   FUNC_DEF: 'py_func_def',
   FUNC_CALL: 'py_func_call',
   RETURN: 'py_return',
@@ -49,6 +68,72 @@ export const PYTHON_BLOCK_TYPES = {
 } as const;
 
 export type PythonBlockType = (typeof PYTHON_BLOCK_TYPES)[keyof typeof PYTHON_BLOCK_TYPES];
+
+function registerVariadicValueBlock(
+  blockly: BlocklyAPI,
+  type: string,
+  opts: {
+    colour: number;
+    output?: string | null;
+    previousStatement?: null;
+    nextStatement?: null;
+    tooltip: string;
+    openLabel: string;
+    closeLabel: string;
+    inputPrefix: string;
+    minCount: number;
+  },
+): void {
+  blockly.Blocks[type] = {
+    init(this: MutableBlock) {
+      this.argCount_ = opts.minCount;
+      this.setColour(opts.colour);
+      if (opts.output !== undefined) {
+        if (opts.output === null) {
+          this.setOutput(true);
+        } else {
+          this.setOutput(true, opts.output);
+        }
+      }
+      if (opts.previousStatement !== undefined) this.setPreviousStatement(true);
+      if (opts.nextStatement !== undefined) this.setNextStatement(true);
+      this.setTooltip(opts.tooltip);
+      this.setInputsInline(true);
+      this.updateShape_();
+    },
+    mutationToDom(this: MutableBlock) {
+      const container = document.createElement('mutation');
+      container.setAttribute('argc', String(this.argCount_));
+      return container;
+    },
+    domToMutation(this: MutableBlock, xmlElement: Element) {
+      const count = Number(xmlElement.getAttribute('argc'));
+      this.argCount_ = Number.isFinite(count) ? Math.max(opts.minCount, count) : opts.minCount;
+      this.updateShape_();
+    },
+    updateShape_(this: MutableBlock) {
+      if (!this.getInput('OPEN')) {
+        this.appendDummyInput('OPEN').appendField(opts.openLabel);
+      }
+
+      for (let i = 0; i < this.argCount_; i++) {
+        if (!this.getInput(`${opts.inputPrefix}${i}`)) {
+          this.appendValueInput(`${opts.inputPrefix}${i}`);
+        }
+      }
+
+      let i = this.argCount_;
+      while (this.getInput(`${opts.inputPrefix}${i}`)) {
+        this.removeInput(`${opts.inputPrefix}${i}`);
+        i++;
+      }
+
+      if (!this.getInput('CLOSE')) {
+        this.appendDummyInput('CLOSE').appendField(opts.closeLabel);
+      }
+    },
+  };
+}
 
 export function registerPythonBlocks(blockly: BlocklyAPI): void {
   // Number literal
@@ -353,6 +438,25 @@ export function registerPythonBlocks(blockly: BlocklyAPI): void {
     },
   };
 
+  // While/else loop
+  blockly.Blocks[PYTHON_BLOCK_TYPES.WHILE_ELSE] = {
+    init(this: BlocklyAPI) {
+      this.jsonInit({
+        type: PYTHON_BLOCK_TYPES.WHILE_ELSE,
+        message0: 'while %1',
+        args0: [{ type: 'input_value', name: 'CONDITION' }],
+        message1: 'do %1',
+        args1: [{ type: 'input_statement', name: 'BODY' }],
+        message2: 'else %1',
+        args2: [{ type: 'input_statement', name: 'ELSE' }],
+        previousStatement: null,
+        nextStatement: null,
+        colour: 120,
+        tooltip: 'While/else loop',
+      });
+    },
+  };
+
   // For loop
   blockly.Blocks[PYTHON_BLOCK_TYPES.FOR] = {
     init(this: BlocklyAPI) {
@@ -369,6 +473,28 @@ export function registerPythonBlocks(blockly: BlocklyAPI): void {
         nextStatement: null,
         colour: 120,
         tooltip: 'For loop',
+      });
+    },
+  };
+
+  // For/else loop
+  blockly.Blocks[PYTHON_BLOCK_TYPES.FOR_ELSE] = {
+    init(this: BlocklyAPI) {
+      this.jsonInit({
+        type: PYTHON_BLOCK_TYPES.FOR_ELSE,
+        message0: 'for %1 in %2',
+        args0: [
+          { type: 'field_input', name: 'VAR', text: 'i' },
+          { type: 'input_value', name: 'ITER' },
+        ],
+        message1: 'do %1',
+        args1: [{ type: 'input_statement', name: 'BODY' }],
+        message2: 'else %1',
+        args2: [{ type: 'input_statement', name: 'ELSE' }],
+        previousStatement: null,
+        nextStatement: null,
+        colour: 120,
+        tooltip: 'For/else loop',
       });
     },
   };
@@ -395,18 +521,38 @@ export function registerPythonBlocks(blockly: BlocklyAPI): void {
 
   // Function call
   blockly.Blocks[PYTHON_BLOCK_TYPES.FUNC_CALL] = {
-    init(this: BlocklyAPI) {
-      this.jsonInit({
-        type: PYTHON_BLOCK_TYPES.FUNC_CALL,
-        message0: '%1 (%2)',
-        args0: [
-          { type: 'field_input', name: 'NAME', text: 'my_function' },
-          { type: 'input_value', name: 'ARG0' },
-        ],
-        output: null,
-        colour: 290,
-        tooltip: 'Function call',
-      });
+    init(this: MutableBlock) {
+      this.argCount_ = 1;
+      this.setColour(290);
+      this.setOutput(true);
+      this.setTooltip('Function call');
+      this.setInputsInline(true);
+      this.appendDummyInput('FUNC')
+        .appendField('call')
+        .appendField(new blockly.FieldTextInput('my_function'), 'NAME');
+      this.updateShape_();
+    },
+    mutationToDom(this: MutableBlock) {
+      const container = document.createElement('mutation');
+      container.setAttribute('argc', String(this.argCount_));
+      return container;
+    },
+    domToMutation(this: MutableBlock, xmlElement: Element) {
+      const count = Number(xmlElement.getAttribute('argc'));
+      this.argCount_ = Number.isFinite(count) ? Math.max(0, count) : 1;
+      this.updateShape_();
+    },
+    updateShape_(this: MutableBlock) {
+      for (let i = 0; i < this.argCount_; i++) {
+        if (!this.getInput(`ARG${i}`)) {
+          this.appendValueInput(`ARG${i}`);
+        }
+      }
+      let i = this.argCount_;
+      while (this.getInput(`ARG${i}`)) {
+        this.removeInput(`ARG${i}`);
+        i++;
+      }
     },
   };
 
@@ -439,16 +585,38 @@ export function registerPythonBlocks(blockly: BlocklyAPI): void {
     },
   };
 
-  // List literal
-  blockly.Blocks[PYTHON_BLOCK_TYPES.LIST] = {
+  // List literal (dynamic arity via XML mutation support)
+  registerVariadicValueBlock(blockly, PYTHON_BLOCK_TYPES.LIST, {
+    colour: 260,
+    output: 'Array',
+    tooltip: 'List literal',
+    openLabel: '[',
+    closeLabel: ']',
+    inputPrefix: 'ADD',
+    minCount: 0,
+  });
+
+  // Tuple literal (dynamic arity via XML mutation support)
+  registerVariadicValueBlock(blockly, PYTHON_BLOCK_TYPES.TUPLE, {
+    colour: 260,
+    output: null,
+    tooltip: 'Tuple literal',
+    openLabel: '(',
+    closeLabel: ')',
+    inputPrefix: 'ADD',
+    minCount: 0,
+  });
+
+  // Dictionary literal (stored as source text for now)
+  blockly.Blocks[PYTHON_BLOCK_TYPES.DICT] = {
     init(this: BlocklyAPI) {
       this.jsonInit({
-        type: PYTHON_BLOCK_TYPES.LIST,
-        message0: '[ %1 ]',
-        args0: [{ type: 'input_value', name: 'ITEMS' }],
-        output: 'Array',
+        type: PYTHON_BLOCK_TYPES.DICT,
+        message0: '%1',
+        args0: [{ type: 'field_input', name: 'CODE', text: '{"key": 1}' }],
+        output: null,
         colour: 260,
-        tooltip: 'List literal',
+        tooltip: 'Dictionary literal',
       });
     },
   };
@@ -505,6 +673,55 @@ export function registerPythonBlocks(blockly: BlocklyAPI): void {
         output: null,
         colour: 260,
         tooltip: 'Python comprehension expression',
+      });
+    },
+  };
+
+  // Attribute access
+  blockly.Blocks[PYTHON_BLOCK_TYPES.ATTR] = {
+    init(this: BlocklyAPI) {
+      this.jsonInit({
+        type: PYTHON_BLOCK_TYPES.ATTR,
+        message0: '%1 . %2',
+        args0: [
+          { type: 'input_value', name: 'OBJ' },
+          { type: 'field_input', name: 'ATTR', text: 'attr' },
+        ],
+        output: null,
+        colour: 330,
+        tooltip: 'Attribute access',
+      });
+    },
+  };
+
+  // Index access
+  blockly.Blocks[PYTHON_BLOCK_TYPES.INDEX] = {
+    init(this: BlocklyAPI) {
+      this.jsonInit({
+        type: PYTHON_BLOCK_TYPES.INDEX,
+        message0: '%1 [ %2 ]',
+        args0: [
+          { type: 'input_value', name: 'VALUE' },
+          { type: 'input_value', name: 'INDEX' },
+        ],
+        output: null,
+        colour: 260,
+        tooltip: 'Index access',
+      });
+    },
+  };
+
+  // Generic try block fallback as raw source
+  blockly.Blocks[PYTHON_BLOCK_TYPES.TRY] = {
+    init(this: BlocklyAPI) {
+      this.jsonInit({
+        type: PYTHON_BLOCK_TYPES.TRY,
+        message0: 'try block %1',
+        args0: [{ type: 'field_input', name: 'CODE', text: 'try:\n    pass' }],
+        previousStatement: null,
+        nextStatement: null,
+        colour: 120,
+        tooltip: 'Try/except/finally source fallback',
       });
     },
   };
@@ -645,7 +862,9 @@ export const PYTHON_TOOLBOX = {
       contents: [
         { kind: 'block', type: PYTHON_BLOCK_TYPES.IF },
         { kind: 'block', type: PYTHON_BLOCK_TYPES.WHILE },
+        { kind: 'block', type: PYTHON_BLOCK_TYPES.WHILE_ELSE },
         { kind: 'block', type: PYTHON_BLOCK_TYPES.FOR },
+        { kind: 'block', type: PYTHON_BLOCK_TYPES.FOR_ELSE },
       ],
     },
     {
@@ -663,7 +882,14 @@ export const PYTHON_TOOLBOX = {
       kind: 'category',
       name: 'Lists',
       colour: '260',
-      contents: [{ kind: 'block', type: PYTHON_BLOCK_TYPES.LIST }],
+      contents: [
+        { kind: 'block', type: PYTHON_BLOCK_TYPES.LIST },
+        { kind: 'block', type: PYTHON_BLOCK_TYPES.TUPLE },
+        { kind: 'block', type: PYTHON_BLOCK_TYPES.DICT },
+        { kind: 'block', type: PYTHON_BLOCK_TYPES.COMPREHENSION },
+        { kind: 'block', type: PYTHON_BLOCK_TYPES.INDEX },
+        { kind: 'block', type: PYTHON_BLOCK_TYPES.ATTR },
+      ],
     },
     {
       kind: 'category',

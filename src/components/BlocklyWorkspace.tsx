@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { registerPythonBlocks, PYTHON_TOOLBOX } from '../services/pythonBlocks';
 import { workspaceToPython } from '../services/blockToPython';
 import * as Blockly from 'blockly/core';
+import * as BlocklyMsgEn from 'blockly/msg/en';
 
 interface BlocklyWorkspaceProps {
   blocksXml?: string;
@@ -29,6 +30,7 @@ export function BlocklyWorkspace({ blocksXml, onCodeChange, className }: Blockly
       try {
         if (!mounted) return;
 
+        Blockly.setLocale(BlocklyMsgEn);
         registerPythonBlocks(Blockly);
 
         const workspace = Blockly.inject(containerRef.current, {

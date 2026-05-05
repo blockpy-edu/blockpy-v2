@@ -105,6 +105,18 @@ describe('blockToCode round-trip', () => {
     expect(blockToCode(mulBlock, errors)).toBe('((1 + 2) * 3)');
     expect(errors).toHaveLength(0);
   });
+
+  it('DICT block preserves dictionary source', () => {
+    const errors: TranslationError[] = [];
+    const block = {
+      type: PYTHON_BLOCK_TYPES.DICT,
+      getFieldValue: (n: string) => (n === 'CODE' ? '{"a": 1}' : ''),
+      getInputTargetBlock: () => null,
+      getNextBlock: () => null,
+    };
+    expect(blockToCode(block, errors)).toBe('{"a": 1}');
+    expect(errors).toHaveLength(0);
+  });
 });
 
 describe('pythonToBlocks stability', () => {

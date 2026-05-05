@@ -121,6 +121,14 @@ describe('pythonToBlocks', () => {
     expect(result.blocksXml).toContain('foo');
   });
 
+  it('captures multiple function arguments with mutation metadata', () => {
+    const result = pythonToBlocks('foo(1, 2, 3)');
+    expect(result.success).toBe(true);
+    expect(result.blocksXml).toContain('py_func_call');
+    expect(result.blocksXml).toContain('mutation argc="3"');
+    expect(result.blocksXml).toContain('name="ARG2"');
+  });
+
   it('converts if statement', () => {
     const result = pythonToBlocks('if x > 0:\n    print(x)');
     expect(result.success).toBe(true);
@@ -152,11 +160,25 @@ describe('pythonToBlocks', () => {
     expect(result.blocksXml).toContain('py_while');
   });
 
+  it('converts while/else statement', () => {
+    const result = pythonToBlocks('while x > 0:\n    x = x - 1\nelse:\n    print("done")');
+    expect(result.success).toBe(true);
+    expect(result.blocksXml).toContain('py_while_else');
+    expect(result.blocksXml).toContain('<statement name="ELSE">');
+  });
+
   it('converts for statement', () => {
     const result = pythonToBlocks('for i in items:\n    print(i)');
     expect(result.success).toBe(true);
     expect(result.blocksXml).toContain('py_for');
     expect(result.blocksXml).toContain('>i<');
+  });
+
+  it('converts for/else statement', () => {
+    const result = pythonToBlocks('for i in items:\n    print(i)\nelse:\n    print("done")');
+    expect(result.success).toBe(true);
+    expect(result.blocksXml).toContain('py_for_else');
+    expect(result.blocksXml).toContain('<statement name="ELSE">');
   });
 
   it('converts function definition', () => {
@@ -185,6 +207,13 @@ describe('pythonToBlocks', () => {
     expect(result.blocksXml).toContain('py_list');
   });
 
+  it('converts dictionary literal: {"a": 1}', () => {
+    const result = pythonToBlocks('{"a": 1}');
+    expect(result.success).toBe(true);
+    expect(result.blocksXml).toContain('py_dict');
+    expect(result.blocksXml).toContain('{&quot;a&quot;: 1}');
+  });
+
   it('converts decorated function definitions', () => {
     const result = pythonToBlocks('@timer\ndef f():\n    return 1');
     expect(result.success).toBe(true);
@@ -197,6 +226,13 @@ describe('pythonToBlocks', () => {
     expect(result.success).toBe(true);
     expect(result.blocksXml).toContain('py_comprehension');
     expect(result.blocksXml).toContain('list');
+  });
+
+  it('preserves nested comprehension source', () => {
+    const result = pythonToBlocks('[x + y for x in xs for y in ys if x < y]');
+    expect(result.success).toBe(true);
+    expect(result.blocksXml).toContain('py_comprehension');
+    expect(result.blocksXml).toContain('for x in xs for y in ys if x &lt; y');
   });
 
   it('converts generator comprehensions', () => {
