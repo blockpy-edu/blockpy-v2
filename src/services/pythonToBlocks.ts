@@ -1,10 +1,6 @@
 import { pythonLanguage } from '@codemirror/lang-python';
 import type { SyntaxNode } from '@lezer/common';
-import type {
-  ParseResult,
-  TranslationError,
-  SourceLocation,
-} from '../types';
+import type { ParseResult, TranslationError, SourceLocation } from '../types';
 import { PYTHON_BLOCK_TYPES } from './pythonBlocks';
 
 const parser = pythonLanguage.parser;
@@ -309,9 +305,19 @@ function exprToBlock(node: SyntaxNode, source: string, errors: TranslationError[
         const leftXml = exprToBlock(parts[0]!, source, errors);
         const rightPart = parts[1]!;
         if (rightPart.type.name === 'PropertyName') {
-          return makeBlock(PYTHON_BLOCK_TYPES.ATTR, { ATTR: nodeText(rightPart, source) }, { OBJ: leftXml }, {});
+          return makeBlock(
+            PYTHON_BLOCK_TYPES.ATTR,
+            { ATTR: nodeText(rightPart, source) },
+            { OBJ: leftXml },
+            {},
+          );
         }
-        return makeBlock(PYTHON_BLOCK_TYPES.INDEX, {}, { VALUE: leftXml, INDEX: exprToBlock(rightPart, source, errors) }, {});
+        return makeBlock(
+          PYTHON_BLOCK_TYPES.INDEX,
+          {},
+          { VALUE: leftXml, INDEX: exprToBlock(rightPart, source, errors) },
+          {},
+        );
       }
       return makeCstExprBlock(node, source);
     }
