@@ -69,13 +69,23 @@ describe('round-trip: Python → Blocks XML', () => {
 describe('blockToCode round-trip', () => {
   it('NUMBER block produces its value', () => {
     const errors: TranslationError[] = [];
-    const block = { type: PYTHON_BLOCK_TYPES.NUMBER, getFieldValue: () => '99', getInputTargetBlock: () => null, getNextBlock: () => null };
+    const block = {
+      type: PYTHON_BLOCK_TYPES.NUMBER,
+      getFieldValue: () => '99',
+      getInputTargetBlock: () => null,
+      getNextBlock: () => null,
+    };
     expect(blockToCode(block, errors)).toBe('99');
   });
 
   it('ASSIGN block with STRING value produces assignment', () => {
     const errors: TranslationError[] = [];
-    const strBlock = { type: PYTHON_BLOCK_TYPES.STRING, getFieldValue: () => 'world', getInputTargetBlock: () => null, getNextBlock: () => null };
+    const strBlock = {
+      type: PYTHON_BLOCK_TYPES.STRING,
+      getFieldValue: () => 'world',
+      getInputTargetBlock: () => null,
+      getNextBlock: () => null,
+    };
     const block = {
       type: PYTHON_BLOCK_TYPES.ASSIGN,
       getFieldValue: (n: string) => (n === 'VAR' ? 'msg' : ''),
@@ -87,9 +97,24 @@ describe('blockToCode round-trip', () => {
 
   it('nested arithmetic: (1 + 2) * 3', () => {
     const errors: TranslationError[] = [];
-    const n1 = { type: PYTHON_BLOCK_TYPES.NUMBER, getFieldValue: () => '1', getInputTargetBlock: () => null, getNextBlock: () => null };
-    const n2 = { type: PYTHON_BLOCK_TYPES.NUMBER, getFieldValue: () => '2', getInputTargetBlock: () => null, getNextBlock: () => null };
-    const n3 = { type: PYTHON_BLOCK_TYPES.NUMBER, getFieldValue: () => '3', getInputTargetBlock: () => null, getNextBlock: () => null };
+    const n1 = {
+      type: PYTHON_BLOCK_TYPES.NUMBER,
+      getFieldValue: () => '1',
+      getInputTargetBlock: () => null,
+      getNextBlock: () => null,
+    };
+    const n2 = {
+      type: PYTHON_BLOCK_TYPES.NUMBER,
+      getFieldValue: () => '2',
+      getInputTargetBlock: () => null,
+      getNextBlock: () => null,
+    };
+    const n3 = {
+      type: PYTHON_BLOCK_TYPES.NUMBER,
+      getFieldValue: () => '3',
+      getInputTargetBlock: () => null,
+      getNextBlock: () => null,
+    };
     const addBlock = {
       type: PYTHON_BLOCK_TYPES.ADD,
       getFieldValue: () => '',
