@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
-import type { BlocklyAPI } from '../services/pythonBlocks';
 import { registerPythonBlocks, PYTHON_TOOLBOX } from '../services/pythonBlocks';
 import { workspaceToPython } from '../services/blockToPython';
+import * as Blockly from 'blockly/core';
 
 interface BlocklyWorkspaceProps {
   blocksXml?: string;
@@ -27,8 +27,6 @@ export function BlocklyWorkspace({ blocksXml, onCodeChange, className }: Blockly
       if (!containerRef.current) return;
 
       try {
-        const blocklyModule = await import('blockly');
-        const Blockly = blocklyModule.default as unknown as BlocklyAPI;
         if (!mounted) return;
 
         registerPythonBlocks(Blockly);
@@ -46,7 +44,10 @@ export function BlocklyWorkspace({ blocksXml, onCodeChange, className }: Blockly
         workspace.addChangeListener((event: any) => {
           if (isExternalUpdateRef.current) return;
           const changeTypes = new Set([
-            'move', 'change', 'delete', 'create',
+            'move',
+            'change',
+            'delete',
+            'create',
             Blockly.Events?.BLOCK_MOVE,
             Blockly.Events?.BLOCK_CHANGE,
             Blockly.Events?.BLOCK_DELETE,
@@ -84,15 +85,14 @@ export function BlocklyWorkspace({ blocksXml, onCodeChange, className }: Blockly
 
     const updateWorkspace = async () => {
       try {
-        const blocklyModule = await import('blockly');
-        const Blockly = blocklyModule.default as unknown as BlocklyAPI;
+        console.log(Blockly);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const Xml = (Blockly as any).Xml;
         if (Xml) {
           isExternalUpdateRef.current = true;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (workspaceRef.current as any).clear();
-          const dom = Xml.textToDom(blocksXml) as Element;
+          const dom = Blockly.utils.xml.textToDom(blocksXml) as Element;
           Xml.domToWorkspace(dom, workspaceRef.current);
         }
       } catch (err) {
