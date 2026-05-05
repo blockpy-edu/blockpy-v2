@@ -384,6 +384,39 @@ describe('additional expression blocks', () => {
     expect(blockToCode(c, errors)).toBe('[x for x in xs if x % 2 == 0]');
   });
 
+  it('converts structured COMPREHENSION with for/if clause blocks', () => {
+    const errors: TranslationError[] = [];
+    const elt = makeBlock(PYTHON_BLOCK_TYPES.VARIABLE, { NAME: 'x' });
+    const forClause = makeBlock(
+      PYTHON_BLOCK_TYPES.COMPREHENSION_FOR,
+      {},
+      {
+        TARGET: makeBlock(PYTHON_BLOCK_TYPES.VARIABLE, { NAME: 'x' }),
+        ITER: makeBlock(PYTHON_BLOCK_TYPES.VARIABLE, { NAME: 'xs' }),
+      },
+    );
+    const ifClause = makeBlock(
+      PYTHON_BLOCK_TYPES.COMPREHENSION_IF,
+      {},
+      {
+        TEST: makeBlock(
+          PYTHON_BLOCK_TYPES.COMPARE,
+          { OP: '>' },
+          {
+            LEFT: makeBlock(PYTHON_BLOCK_TYPES.VARIABLE, { NAME: 'x' }),
+            RIGHT: makeBlock(PYTHON_BLOCK_TYPES.NUMBER, { VALUE: '0' }),
+          },
+        ),
+      },
+    );
+    const c = makeBlock(
+      PYTHON_BLOCK_TYPES.COMPREHENSION,
+      { KIND: 'list', CODE: '' },
+      { ELT: elt, GENERATOR0: forClause, GENERATOR1: ifClause },
+    );
+    expect(blockToCode(c, errors)).toBe('[x for x in xs if (x > 0)]');
+  });
+
   it('converts ATTR and INDEX blocks', () => {
     const errors: TranslationError[] = [];
     const obj = makeBlock(PYTHON_BLOCK_TYPES.VARIABLE, { NAME: 'data' });

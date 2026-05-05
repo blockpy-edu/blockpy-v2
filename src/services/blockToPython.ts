@@ -40,6 +40,10 @@ function variadicInputCodes(
   return values;
 }
 
+function comprehensionClauses(block: BlocklyBlock, errors: TranslationError[]): string[] {
+  return variadicInputCodes(block, 'GENERATOR', errors).filter(Boolean);
+}
+
 function blockToCode(block: BlocklyBlock, errors: TranslationError[]): string {
   if (!block) return '';
   const type = block.type as string;
@@ -209,12 +213,25 @@ function blockToCode(block: BlocklyBlock, errors: TranslationError[]): string {
     }
     case PYTHON_BLOCK_TYPES.COMPREHENSION: {
       const kind = (block.getFieldValue('KIND') as string) || 'list';
-      const code = ((block.getFieldValue('CODE') as string) || '').trim();
-      const inner = code || 'x for x in []';
+      const legacyCode = ((block.getFieldValue('CODE') as string) || '').trim();
+      const elt = blockToCode(block.getInputTargetBlock('ELT') as BlocklyBlock, errors).trim();
+      const clauses = comprehensionClauses(block, errors);
+      const inner =
+        elt && clauses.length > 0 ? `${elt} ${clauses.join(' ')}` : legacyCode || 'x for x in []';
       if (kind === 'generator') return `(${inner})`;
       if (kind === 'set') return `{${inner}}`;
       if (kind === 'dict') return `{${inner}}`;
       return `[${inner}]`;
+    }
+    case PYTHON_BLOCK_TYPES.COMPREHENSION_FOR: {
+      const target =
+        blockToCode(block.getInputTargetBlock('TARGET') as BlocklyBlock, errors) || '_';
+      const iter = blockToCode(block.getInputTargetBlock('ITER') as BlocklyBlock, errors) || '[]';
+      return `for ${target} in ${iter}`;
+    }
+    case PYTHON_BLOCK_TYPES.COMPREHENSION_IF: {
+      const test = blockToCode(block.getInputTargetBlock('TEST') as BlocklyBlock, errors) || 'True';
+      return `if ${test}`;
     }
     case PYTHON_BLOCK_TYPES.DECORATED: {
       const decoratorsRaw = (block.getFieldValue('DECORATORS') as string) || '@decorator';

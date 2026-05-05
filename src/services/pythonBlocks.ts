@@ -26,6 +26,38 @@ interface MutableBlock {
   updateShape_: () => void;
 }
 
+interface MutableComprehensionBlock extends BlocklyAPI {
+  itemCount_: number;
+  getInput: (
+    name: string,
+  ) => { connection?: { targetConnection?: unknown; connect?: (c: unknown) => void } } | null;
+  appendValueInput: (name: string) => {
+    appendField: (...args: unknown[]) => unknown;
+    setCheck: (...args: unknown[]) => unknown;
+  };
+  appendDummyInput: (name?: string) => {
+    appendField: (...args: unknown[]) => {
+      appendField: (...args: unknown[]) => { appendField: (...args: unknown[]) => unknown };
+    };
+  };
+  removeInput: (name: string) => void;
+  moveInputBefore: (name: string, refName: string) => void;
+  setOutput: (newBoolean: boolean, check?: string | string[] | null) => void;
+  setColour: (colour: number) => void;
+  setTooltip: (text: string) => void;
+  setInputsInline: (newBoolean: boolean) => void;
+  setMutator: (mutator: unknown) => void;
+  workspace: {
+    newBlock: (type: string) => {
+      initSvg: () => void;
+      type: string;
+      previousConnection?: unknown;
+      nextConnection?: { targetBlock: () => unknown };
+      valueConnection_?: unknown;
+    };
+  };
+}
+
 export const PYTHON_BLOCK_TYPES = {
   NUMBER: 'py_number',
   STRING: 'py_string',
@@ -54,6 +86,8 @@ export const PYTHON_BLOCK_TYPES = {
   TUPLE: 'py_tuple',
   DICT: 'py_dict',
   COMPREHENSION: 'py_comprehension',
+  COMPREHENSION_FOR: 'py_comprehension_for',
+  COMPREHENSION_IF: 'py_comprehension_if',
   DECORATED: 'py_decorated',
   INDEX: 'py_index',
   ATTR: 'py_attr',
@@ -651,29 +685,193 @@ export function registerPythonBlocks(blockly: BlocklyAPI): void {
     },
   };
 
-  // Generic comprehension expression
-  blockly.Blocks[PYTHON_BLOCK_TYPES.COMPREHENSION] = {
+  // Comprehension clause blocks
+  blockly.Blocks[PYTHON_BLOCK_TYPES.COMPREHENSION_FOR] = {
     init(this: BlocklyAPI) {
       this.jsonInit({
-        type: PYTHON_BLOCK_TYPES.COMPREHENSION,
-        message0: '%1 %2',
+        type: PYTHON_BLOCK_TYPES.COMPREHENSION_FOR,
+        message0: 'for %1 in %2',
         args0: [
-          {
-            type: 'field_dropdown',
-            name: 'KIND',
-            options: [
-              ['list', 'list'],
-              ['set', 'set'],
-              ['dict', 'dict'],
-              ['generator', 'generator'],
-            ],
-          },
-          { type: 'field_input', name: 'CODE', text: 'x for x in xs' },
+          { type: 'input_value', name: 'TARGET' },
+          { type: 'input_value', name: 'ITER' },
         ],
-        output: null,
+        inputsInline: true,
+        output: 'ComprehensionFor',
         colour: 260,
-        tooltip: 'Python comprehension expression',
+        tooltip: 'Comprehension for clause',
       });
+    },
+  };
+
+  blockly.Blocks[PYTHON_BLOCK_TYPES.COMPREHENSION_IF] = {
+    init(this: BlocklyAPI) {
+      this.jsonInit({
+        type: PYTHON_BLOCK_TYPES.COMPREHENSION_IF,
+        message0: 'if %1',
+        args0: [{ type: 'input_value', name: 'TEST' }],
+        inputsInline: true,
+        output: 'ComprehensionIf',
+        colour: 260,
+        tooltip: 'Comprehension if clause',
+      });
+    },
+  };
+
+  // Mutator scaffold blocks for comprehension clause editing.
+  blockly.Blocks.py_comp_create_with_container = {
+    init(this: BlocklyAPI) {
+      this.setColour(260);
+      this.appendDummyInput().appendField('comprehension clauses');
+      this.appendStatementInput('STACK');
+      this.contextMenu = false;
+    },
+  };
+
+  blockly.Blocks.py_comp_create_with_for = {
+    init(this: BlocklyAPI) {
+      this.setColour(260);
+      this.appendDummyInput().appendField('for clause');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.contextMenu = false;
+    },
+  };
+
+  blockly.Blocks.py_comp_create_with_if = {
+    init(this: BlocklyAPI) {
+      this.setColour(260);
+      this.appendDummyInput().appendField('if clause');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.contextMenu = false;
+    },
+  };
+
+  // Generic comprehension expression with mutator-managed clause arity.
+  blockly.Blocks[PYTHON_BLOCK_TYPES.COMPREHENSION] = {
+    init(this: MutableComprehensionBlock) {
+      this.itemCount_ = 1;
+      this.setColour(260);
+      this.setOutput(true);
+      this.setTooltip('Python comprehension expression');
+      this.setInputsInline(true);
+      this.appendDummyInput('HEADER')
+        .appendField('comprehension')
+        .appendField(
+          new blockly.FieldDropdown([
+            ['list', 'list'],
+            ['set', 'set'],
+            ['dict', 'dict'],
+            ['generator', 'generator'],
+          ]),
+          'KIND',
+        )
+        .appendField(new blockly.FieldTextInput('x for x in xs'), 'CODE');
+      this.appendValueInput('ELT').appendField('expr');
+      this.appendDummyInput('TAIL');
+      this.setMutator(
+        new blockly.icons.MutatorIcon(['py_comp_create_with_for', 'py_comp_create_with_if'], this),
+      );
+      this.updateShape_();
+    },
+    mutationToDom(this: MutableComprehensionBlock) {
+      const container = document.createElement('mutation');
+      container.setAttribute('items', String(this.itemCount_));
+      return container;
+    },
+    domToMutation(this: MutableComprehensionBlock, xmlElement: Element) {
+      const items = Number(xmlElement.getAttribute('items'));
+      this.itemCount_ = Number.isFinite(items) ? Math.max(1, items) : 1;
+      this.updateShape_();
+    },
+    decompose(this: MutableComprehensionBlock, workspace: MutableComprehensionBlock['workspace']) {
+      const containerBlock = workspace.newBlock('py_comp_create_with_container');
+      containerBlock.initSvg();
+      let connection = (containerBlock as unknown as BlocklyAPI).getInput('STACK').connection;
+
+      for (let i = 0; i < this.itemCount_; i++) {
+        const input = this.getInput(`GENERATOR${i}`);
+        const connected = input?.connection?.targetConnection
+          ? (
+              input.connection.targetConnection as { getSourceBlock: () => { type: string } }
+            ).getSourceBlock().type
+          : null;
+        const mutatorType =
+          connected === PYTHON_BLOCK_TYPES.COMPREHENSION_IF
+            ? 'py_comp_create_with_if'
+            : 'py_comp_create_with_for';
+        const itemBlock = workspace.newBlock(mutatorType);
+        itemBlock.initSvg();
+        (connection as { connect: (c: unknown) => void }).connect(itemBlock.previousConnection);
+        connection = itemBlock.nextConnection;
+      }
+      return containerBlock;
+    },
+    compose(this: MutableComprehensionBlock, containerBlock: BlocklyAPI) {
+      const connections: unknown[] = [];
+      const blockTypes: string[] = [];
+      let itemBlock = containerBlock.getInputTargetBlock('STACK');
+      while (itemBlock) {
+        connections.push(itemBlock.valueConnection_);
+        blockTypes.push(itemBlock.type);
+        itemBlock = itemBlock.nextConnection && itemBlock.nextConnection.targetBlock();
+      }
+
+      this.itemCount_ = Math.max(1, connections.length);
+      this.updateShape_();
+
+      for (let i = 0; i < this.itemCount_; i++) {
+        const input = this.getInput(`GENERATOR${i}`);
+        if (!input?.connection) continue;
+        const existing = connections[i];
+        if (existing && (existing as { reconnect?: (b: unknown, n: string) => void }).reconnect) {
+          (existing as { reconnect: (b: unknown, n: string) => void }).reconnect(
+            this,
+            `GENERATOR${i}`,
+          );
+          continue;
+        }
+
+        const newClauseType =
+          blockTypes[i] === 'py_comp_create_with_if'
+            ? PYTHON_BLOCK_TYPES.COMPREHENSION_IF
+            : PYTHON_BLOCK_TYPES.COMPREHENSION_FOR;
+        const clauseBlock = this.workspace.newBlock(newClauseType);
+        clauseBlock.initSvg();
+        if (input.connection.connect) {
+          input.connection.connect(
+            (clauseBlock as unknown as { outputConnection: unknown }).outputConnection,
+          );
+        }
+      }
+    },
+    saveConnections(this: MutableComprehensionBlock, containerBlock: BlocklyAPI) {
+      let itemBlock = containerBlock.getInputTargetBlock('STACK');
+      let i = 0;
+      while (itemBlock) {
+        const input = this.getInput(`GENERATOR${i}`);
+        itemBlock.valueConnection_ = input?.connection?.targetConnection;
+        i++;
+        itemBlock = itemBlock.nextConnection && itemBlock.nextConnection.targetBlock();
+      }
+    },
+    updateShape_(this: MutableComprehensionBlock) {
+      for (let i = 0; i < this.itemCount_; i++) {
+        if (!this.getInput(`GENERATOR${i}`)) {
+          const input = this.appendValueInput(`GENERATOR${i}`);
+          input.setCheck(i === 0 ? 'ComprehensionFor' : ['ComprehensionFor', 'ComprehensionIf']);
+          if (i === 0) {
+            input.appendField('clauses');
+          }
+          this.moveInputBefore(`GENERATOR${i}`, 'TAIL');
+        }
+      }
+
+      let i = this.itemCount_;
+      while (this.getInput(`GENERATOR${i}`)) {
+        this.removeInput(`GENERATOR${i}`);
+        i++;
+      }
     },
   };
 
@@ -887,6 +1085,8 @@ export const PYTHON_TOOLBOX = {
         { kind: 'block', type: PYTHON_BLOCK_TYPES.TUPLE },
         { kind: 'block', type: PYTHON_BLOCK_TYPES.DICT },
         { kind: 'block', type: PYTHON_BLOCK_TYPES.COMPREHENSION },
+        { kind: 'block', type: PYTHON_BLOCK_TYPES.COMPREHENSION_FOR },
+        { kind: 'block', type: PYTHON_BLOCK_TYPES.COMPREHENSION_IF },
         { kind: 'block', type: PYTHON_BLOCK_TYPES.INDEX },
         { kind: 'block', type: PYTHON_BLOCK_TYPES.ATTR },
       ],

@@ -188,6 +188,139 @@ function comprehensionKind(nodeType: string): string {
   }
 }
 
+function makeComprehensionFragment(text: string, label: string): string {
+  return makeBlock(PYTHON_BLOCK_TYPES.CST_EXPR, { NODE: label, CODE: text.trim() || '_' }, {}, {});
+}
+
+function nextClauseBoundary(children: SyntaxNode[], start: number): number {
+  for (let i = start; i < children.length; i++) {
+    const type = children[i]!.type.name;
+    if (type === 'for' || type === 'if') {
+      return i;
+    }
+  }
+  return children.length - 1;
+}
+
+function expressionFromSlice(
+  children: SyntaxNode[],
+  start: number,
+  endExclusive: number,
+  source: string,
+  errors: TranslationError[],
+  label: string,
+): string {
+  if (start >= endExclusive || start < 0 || endExclusive > children.length) {
+    return makeComprehensionFragment('_', label);
+  }
+
+  const slice = children.slice(start, endExclusive);
+  const semantic = slice.filter((child) => {
+    const type = child.type.name;
+    return !isTokenNode(type) && !isKeywordNode(type) && !isIgnorableLeaf(type);
+  });
+
+  if (semantic.length === 1) {
+    return exprToBlock(semantic[0]!, source, errors);
+  }
+
+  const raw = source.slice(slice[0]!.from, slice[slice.length - 1]!.to).trim();
+  return makeComprehensionFragment(raw, label);
+}
+
+function comprehensionToStructuredBlock(
+  node: SyntaxNode,
+  source: string,
+  errors: TranslationError[],
+): string {
+  const children = allChildren(node);
+  const firstFor = children.findIndex((c) => c.type.name === 'for');
+  if (firstFor === -1) {
+    return makeBlock(
+      PYTHON_BLOCK_TYPES.COMPREHENSION,
+      { KIND: comprehensionKind(node.type.name), CODE: nodeText(node, source) },
+      {},
+      {},
+    );
+  }
+
+  const expressionStart = isTokenNode(children[0]?.type.name ?? '') ? 1 : 0;
+  const eltXml = expressionFromSlice(
+    children,
+    expressionStart,
+    firstFor,
+    source,
+    errors,
+    'ComprehensionElt',
+  );
+
+  const clauseXml: string[] = [];
+  let i = firstFor;
+  while (i < children.length) {
+    const type = children[i]!.type.name;
+    if (type === 'for') {
+      const inIdx = children.findIndex((c, idx) => idx > i && c.type.name === 'in');
+      if (inIdx <= i) break;
+      const nextBoundary = nextClauseBoundary(children, inIdx + 1);
+      const targetXml = expressionFromSlice(
+        children,
+        i + 1,
+        inIdx,
+        source,
+        errors,
+        'ComprehensionTarget',
+      );
+      const iterXml = expressionFromSlice(
+        children,
+        inIdx + 1,
+        nextBoundary,
+        source,
+        errors,
+        'ComprehensionIter',
+      );
+      clauseXml.push(
+        makeBlock(
+          PYTHON_BLOCK_TYPES.COMPREHENSION_FOR,
+          {},
+          { TARGET: targetXml, ITER: iterXml },
+          {},
+        ),
+      );
+      i = nextBoundary;
+      continue;
+    }
+
+    if (type === 'if') {
+      const nextBoundary = nextClauseBoundary(children, i + 1);
+      const testXml = expressionFromSlice(
+        children,
+        i + 1,
+        nextBoundary,
+        source,
+        errors,
+        'ComprehensionTest',
+      );
+      clauseXml.push(makeBlock(PYTHON_BLOCK_TYPES.COMPREHENSION_IF, {}, { TEST: testXml }, {}));
+      i = nextBoundary;
+      continue;
+    }
+    i++;
+  }
+
+  const values: Record<string, string> = { ELT: eltXml };
+  clauseXml.forEach((xml, index) => {
+    values[`GENERATOR${index}`] = xml;
+  });
+
+  return makeBlock(
+    PYTHON_BLOCK_TYPES.COMPREHENSION,
+    { KIND: comprehensionKind(node.type.name), CODE: nodeText(node, source) },
+    values,
+    {},
+    { items: String(Math.max(1, clauseXml.length)) },
+  );
+}
+
 function extractCallArguments(
   argListNode: SyntaxNode,
   source: string,
@@ -353,12 +486,7 @@ function exprToBlock(node: SyntaxNode, source: string, errors: TranslationError[
     case 'SetComprehensionExpression':
     case 'DictionaryComprehensionExpression':
     case 'ComprehensionExpression':
-      return makeBlock(
-        PYTHON_BLOCK_TYPES.COMPREHENSION,
-        { KIND: comprehensionKind(type), CODE: nodeText(node, source) },
-        {},
-        {},
-      );
+      return comprehensionToStructuredBlock(node, source, errors);
     case 'LambdaExpression':
     case 'AwaitExpression':
     case 'ConditionalExpression':

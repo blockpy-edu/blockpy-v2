@@ -226,6 +226,8 @@ describe('pythonToBlocks', () => {
     expect(result.success).toBe(true);
     expect(result.blocksXml).toContain('py_comprehension');
     expect(result.blocksXml).toContain('list');
+    expect(result.blocksXml).toContain('py_comprehension_for');
+    expect(result.blocksXml).toContain('mutation items="1"');
   });
 
   it('preserves nested comprehension source', () => {
@@ -233,6 +235,9 @@ describe('pythonToBlocks', () => {
     expect(result.success).toBe(true);
     expect(result.blocksXml).toContain('py_comprehension');
     expect(result.blocksXml).toContain('for x in xs for y in ys if x &lt; y');
+    expect(result.blocksXml).toContain('py_comprehension_for');
+    expect(result.blocksXml).toContain('py_comprehension_if');
+    expect(result.blocksXml).toContain('name="GENERATOR2"');
   });
 
   it('converts generator comprehensions', () => {
