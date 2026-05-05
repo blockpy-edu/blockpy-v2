@@ -233,14 +233,14 @@
 
 /* Green run button matching original blockpy */
 .btn-run {
-  background-color: rgb(40, 130, 40);
+  background-color: var(--color-primary);
   color: white;
-  border-color: rgb(30, 100, 30);
+  border-color: var(--color-primary-hover);
 }
 
 .btn-run:hover:not(:disabled) {
-  background-color: rgb(20, 100, 20);
-  border-color: rgb(15, 80, 15);
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-active);
 }
 
 .btn-run.running {

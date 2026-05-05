@@ -23,6 +23,7 @@ export function BlockPyEditor() {
   const [isRunning, setIsRunning] = useState(false);
   const [isLoadingPyodide, setIsLoadingPyodide] = useState(false);
   const [parseErrors, setParseErrors] = useState<TranslationError[]>([]);
+  const [hasRun, setHasRun] = useState(false);
 
   const syncControllerRef = useRef(
     createSyncController({
@@ -54,6 +55,7 @@ export function BlockPyEditor() {
     setIsRunning(true);
     setOutput('');
     setExecutionError(null);
+    setHasRun(true);
 
     try {
       if (!isPyodideLoaded()) {
@@ -82,6 +84,7 @@ export function BlockPyEditor() {
     setCode(INITIAL_CODE);
     setOutput('');
     setExecutionError(null);
+    setHasRun(false);
     setParseErrors([]);
     setBlocksXml(undefined);
     syncControllerRef.current.reset();
@@ -124,7 +127,9 @@ export function BlockPyEditor() {
           <div className="blockpy-printer" aria-live="polite">
             {output ? (
               output
-            ) : executionError ? null : (
+            ) : executionError ? null : hasRun ? (
+              <span className="output-placeholder">(no output)</span>
+            ) : (
               <span className="output-placeholder">Run your code to see output here</span>
             )}
             {executionError && (
