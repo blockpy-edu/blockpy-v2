@@ -14,8 +14,11 @@ export function BlocklyWorkspace({ blocksXml, onCodeChange, className }: Blockly
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const workspaceRef = useRef<any>(null);
   const onCodeChangeRef = useRef(onCodeChange);
-  onCodeChangeRef.current = onCodeChange;
   const isExternalUpdateRef = useRef(false);
+
+  useEffect(() => {
+    onCodeChangeRef.current = onCodeChange;
+  });
 
   useEffect(() => {
     let mounted = true;

@@ -37,7 +37,8 @@ export function BlockPyEditor() {
   );
 
   useEffect(() => {
-    return () => syncControllerRef.current.dispose();
+    const controller = syncControllerRef.current;
+    return () => controller.dispose();
   }, []);
 
   const handleTextChange = useCallback((newCode: string) => {
