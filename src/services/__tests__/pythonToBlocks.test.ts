@@ -129,6 +129,23 @@ describe('pythonToBlocks', () => {
     expect(result.blocksXml).toContain('py_print');
   });
 
+  it('chains multi-line if body statements vertically', () => {
+    const result = pythonToBlocks('if x > 0:\n    y = 1\n    print(y)');
+    expect(result.success).toBe(true);
+    expect(result.blocksXml).toContain(
+      '<statement name="BODY"><block type="py_assign"><field name="VAR">y</field>',
+    );
+    expect(result.blocksXml).toContain('<next><block type="py_print">');
+  });
+
+  it('chains multi-line function-call body statements as statement blocks', () => {
+    const result = pythonToBlocks('if x > 0:\n    foo(1)\n    bar(2)');
+    expect(result.success).toBe(true);
+    expect(result.blocksXml).toContain('<statement name="BODY"><block type="py_expr_stmt">');
+    expect(result.blocksXml).toContain('<next><block type="py_expr_stmt">');
+    expect(result.blocksXml).toContain('type="py_func_call"');
+  });
+
   it('converts while statement', () => {
     const result = pythonToBlocks('while x > 0:\n    x = x - 1');
     expect(result.success).toBe(true);
@@ -168,6 +185,27 @@ describe('pythonToBlocks', () => {
     expect(result.blocksXml).toContain('py_list');
   });
 
+  it('converts decorated function definitions', () => {
+    const result = pythonToBlocks('@timer\ndef f():\n    return 1');
+    expect(result.success).toBe(true);
+    expect(result.blocksXml).toContain('py_decorated');
+    expect(result.blocksXml).toContain('@timer');
+  });
+
+  it('converts list comprehensions', () => {
+    const result = pythonToBlocks('[x for x in xs]');
+    expect(result.success).toBe(true);
+    expect(result.blocksXml).toContain('py_comprehension');
+    expect(result.blocksXml).toContain('list');
+  });
+
+  it('converts generator comprehensions', () => {
+    const result = pythonToBlocks('(x for x in xs)');
+    expect(result.success).toBe(true);
+    expect(result.blocksXml).toContain('py_comprehension');
+    expect(result.blocksXml).toContain('generator');
+  });
+
   it('converts multiple statements', () => {
     const result = pythonToBlocks('x = 1\ny = 2\nprint(x)');
     expect(result.success).toBe(true);
@@ -176,17 +214,35 @@ describe('pythonToBlocks', () => {
     expect(result.blocksXml).toContain('py_print');
   });
 
+  it('attaches top-level statements when there is no blank line', () => {
+    const result = pythonToBlocks('x = 1\ny = 2');
+    expect(result.success).toBe(true);
+    expect(result.blocksXml).toContain('<block type="py_assign" x="20" y="20">');
+    expect(result.blocksXml).toContain('<next><block type="py_assign">');
+  });
+
+  it('does not attach top-level statements across a blank line', () => {
+    const result = pythonToBlocks('x = 1\n\ny = 2');
+    expect(result.success).toBe(true);
+    expect(result.blocksXml).toContain('<block type="py_assign" x="20" y="20">');
+    expect(result.blocksXml).toContain('<block type="py_assign" x="20" y="160">');
+    expect(result.blocksXml).not.toContain(
+      '<next><block type="py_assign"><field name="VAR">y</field>',
+    );
+  });
+
   it('handles pass statement silently', () => {
     const result = pythonToBlocks('if True:\n    pass');
     expect(result.success).toBe(true);
     expect(result.blocksXml).toContain('py_if');
   });
 
-  it('produces unsupported block for unknown constructs and adds error', () => {
-    // yield is not supported
+  it('preserves unknown constructs as generic CST statements', () => {
     const result = pythonToBlocks('yield 42');
-    expect(result.errors.length).toBeGreaterThan(0);
-    expect(result.blocksXml).toContain('py_unsupported');
+    expect(result.success).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.blocksXml).toContain('py_expr_stmt');
+    expect(result.blocksXml).toContain('py_number');
   });
 
   it('escapes XML special chars in field values', () => {

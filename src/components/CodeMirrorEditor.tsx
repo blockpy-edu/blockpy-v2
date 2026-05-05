@@ -1,5 +1,11 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { EditorView, keymap, lineNumbers, drawSelection, highlightActiveLine } from '@codemirror/view';
+import {
+  EditorView,
+  keymap,
+  lineNumbers,
+  drawSelection,
+  highlightActiveLine,
+} from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { python } from '@codemirror/lang-python';
@@ -22,6 +28,7 @@ export function CodeMirrorEditor({
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
+  const isExternalSyncRef = useRef(false);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -46,7 +53,7 @@ export function CodeMirrorEditor({
         oneDark,
         syntaxHighlighting(defaultHighlightStyle),
         EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
+          if (update.docChanged && !isExternalSyncRef.current) {
             handleChange(update.state.doc.toString());
           }
         }),
@@ -75,9 +82,11 @@ export function CodeMirrorEditor({
     if (!view) return;
     const currentValue = view.state.doc.toString();
     if (currentValue !== value) {
+      isExternalSyncRef.current = true;
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: value },
       });
+      isExternalSyncRef.current = false;
     }
   }, [value]);
 

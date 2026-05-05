@@ -85,11 +85,11 @@ export function BlocklyWorkspace({ blocksXml, onCodeChange, className }: Blockly
 
     const updateWorkspace = async () => {
       try {
-        console.log(Blockly);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const Xml = (Blockly as any).Xml;
         if (Xml) {
           isExternalUpdateRef.current = true;
+          Blockly.Events.disable();
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (workspaceRef.current as any).clear();
           const dom = Blockly.utils.xml.textToDom(blocksXml) as Element;
@@ -98,6 +98,7 @@ export function BlocklyWorkspace({ blocksXml, onCodeChange, className }: Blockly
       } catch (err) {
         console.error('Failed to update Blockly workspace:', err);
       } finally {
+        Blockly.Events.enable();
         isExternalUpdateRef.current = false;
       }
     };

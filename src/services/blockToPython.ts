@@ -84,10 +84,7 @@ function blockToCode(block: BlocklyBlock, errors: TranslationError[]): string {
       return `(not ${value})`;
     }
     case PYTHON_BLOCK_TYPES.IF: {
-      const condition = blockToCode(
-        block.getInputTargetBlock('CONDITION') as BlocklyBlock,
-        errors,
-      );
+      const condition = blockToCode(block.getInputTargetBlock('CONDITION') as BlocklyBlock, errors);
       const bodyBlock = block.getInputTargetBlock('BODY') as BlocklyBlock;
       const elseBlock = block.getInputTargetBlock('ELSE') as BlocklyBlock;
       let code = `if ${condition}:\n`;
@@ -100,10 +97,7 @@ function blockToCode(block: BlocklyBlock, errors: TranslationError[]): string {
       return code.trimEnd();
     }
     case PYTHON_BLOCK_TYPES.WHILE: {
-      const condition = blockToCode(
-        block.getInputTargetBlock('CONDITION') as BlocklyBlock,
-        errors,
-      );
+      const condition = blockToCode(block.getInputTargetBlock('CONDITION') as BlocklyBlock, errors);
       const bodyBlock = block.getInputTargetBlock('BODY') as BlocklyBlock;
       const bodyCode = statementToCode(bodyBlock, errors);
       return `while ${condition}:\n${indent(bodyCode || 'pass')}`;
@@ -143,6 +137,10 @@ function blockToCode(block: BlocklyBlock, errors: TranslationError[]): string {
       const valueBlock = block.getInputTargetBlock('VALUE') as BlocklyBlock;
       const value = valueBlock ? blockToCode(valueBlock, errors) : '';
       return `print(${value})`;
+    }
+    case PYTHON_BLOCK_TYPES.EXPR_STMT: {
+      const valueBlock = block.getInputTargetBlock('VALUE') as BlocklyBlock;
+      return valueBlock ? blockToCode(valueBlock, errors) : '';
     }
     case PYTHON_BLOCK_TYPES.IMPORT: {
       const module = block.getFieldValue('MODULE') as string;

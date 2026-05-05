@@ -34,10 +34,15 @@ export const PYTHON_BLOCK_TYPES = {
   LIST: 'py_list',
   TUPLE: 'py_tuple',
   DICT: 'py_dict',
+  COMPREHENSION: 'py_comprehension',
+  DECORATED: 'py_decorated',
   INDEX: 'py_index',
   ATTR: 'py_attr',
   IMPORT: 'py_import',
   PRINT: 'py_print',
+  EXPR_STMT: 'py_expr_stmt',
+  CST_EXPR: 'py_cst_expr',
+  CST_STMT: 'py_cst_stmt',
   TRY: 'py_try',
   UNSUPPORTED: 'py_unsupported',
   ERROR: 'py_error',
@@ -399,10 +404,23 @@ export function registerPythonBlocks(blockly: BlocklyAPI): void {
           { type: 'input_value', name: 'ARG0' },
         ],
         output: null,
-        previousStatement: null,
-        nextStatement: null,
         colour: 290,
         tooltip: 'Function call',
+      });
+    },
+  };
+
+  // Expression statement wrapper (for standalone expressions like foo())
+  blockly.Blocks[PYTHON_BLOCK_TYPES.EXPR_STMT] = {
+    init(this: BlocklyAPI) {
+      this.jsonInit({
+        type: PYTHON_BLOCK_TYPES.EXPR_STMT,
+        message0: '%1',
+        args0: [{ type: 'input_value', name: 'VALUE' }],
+        previousStatement: null,
+        nextStatement: null,
+        colour: 300,
+        tooltip: 'Standalone expression statement',
       });
     },
   };
@@ -461,6 +479,84 @@ export function registerPythonBlocks(blockly: BlocklyAPI): void {
         nextStatement: null,
         colour: 45,
         tooltip: 'Import a module',
+      });
+    },
+  };
+
+  // Generic comprehension expression
+  blockly.Blocks[PYTHON_BLOCK_TYPES.COMPREHENSION] = {
+    init(this: BlocklyAPI) {
+      this.jsonInit({
+        type: PYTHON_BLOCK_TYPES.COMPREHENSION,
+        message0: '%1 %2',
+        args0: [
+          {
+            type: 'field_dropdown',
+            name: 'KIND',
+            options: [
+              ['list', 'list'],
+              ['set', 'set'],
+              ['dict', 'dict'],
+              ['generator', 'generator'],
+            ],
+          },
+          { type: 'field_input', name: 'CODE', text: 'x for x in xs' },
+        ],
+        output: null,
+        colour: 260,
+        tooltip: 'Python comprehension expression',
+      });
+    },
+  };
+
+  // Decorated definitions (functions/classes)
+  blockly.Blocks[PYTHON_BLOCK_TYPES.DECORATED] = {
+    init(this: BlocklyAPI) {
+      this.jsonInit({
+        type: PYTHON_BLOCK_TYPES.DECORATED,
+        message0: 'decorators %1',
+        args0: [{ type: 'field_input', name: 'DECORATORS', text: '@decorator' }],
+        message1: 'definition %1',
+        args1: [{ type: 'field_input', name: 'TARGET', text: 'def f(): ...' }],
+        previousStatement: null,
+        nextStatement: null,
+        colour: 290,
+        tooltip: 'Decorator-applied definition',
+      });
+    },
+  };
+
+  // Generic expression block used to preserve unsupported CST nodes as expressions
+  blockly.Blocks[PYTHON_BLOCK_TYPES.CST_EXPR] = {
+    init(this: BlocklyAPI) {
+      this.jsonInit({
+        type: PYTHON_BLOCK_TYPES.CST_EXPR,
+        message0: '%1 %2',
+        args0: [
+          { type: 'field_input', name: 'NODE', text: 'NodeType' },
+          { type: 'field_input', name: 'CODE', text: 'source' },
+        ],
+        output: null,
+        colour: 20,
+        tooltip: 'Generic CST expression node',
+      });
+    },
+  };
+
+  // Generic statement block used to preserve unsupported CST nodes as statements
+  blockly.Blocks[PYTHON_BLOCK_TYPES.CST_STMT] = {
+    init(this: BlocklyAPI) {
+      this.jsonInit({
+        type: PYTHON_BLOCK_TYPES.CST_STMT,
+        message0: '%1 %2',
+        args0: [
+          { type: 'field_input', name: 'NODE', text: 'NodeType' },
+          { type: 'field_input', name: 'CODE', text: 'source' },
+        ],
+        previousStatement: null,
+        nextStatement: null,
+        colour: 20,
+        tooltip: 'Generic CST statement node',
       });
     },
   };

@@ -1,6 +1,10 @@
 import { pythonLanguage } from '@codemirror/lang-python';
 import type { SyntaxNode } from '@lezer/common';
-import type { ParseResult, TranslationError, UnsupportedSyntaxError, SourceLocation } from '../types';
+import type {
+  ParseResult,
+  TranslationError,
+  SourceLocation,
+} from '../types';
 import { PYTHON_BLOCK_TYPES } from './pythonBlocks';
 
 const parser = pythonLanguage.parser;
@@ -20,16 +24,6 @@ function getLocation(node: SyntaxNode, source: string): SourceLocation {
       endLines.length === 1
         ? col + afterSlice.length
         : (endLines[endLines.length - 1] ?? '').length + 1,
-  };
-}
-
-function unsupportedError(node: SyntaxNode, source: string): UnsupportedSyntaxError {
-  return {
-    type: 'unsupported_syntax',
-    nodeType: node.type.name,
-    location: getLocation(node, source),
-    sourceExcerpt: source.slice(node.from, Math.min(node.to, node.from + 60)),
-    message: `Unsupported syntax: ${node.type.name}`,
   };
 }
 
@@ -64,12 +58,21 @@ function makeBlock(
   return xml;
 }
 
-function errorBlock(message: string): string {
-  return makeBlock(PYTHON_BLOCK_TYPES.ERROR, { MESSAGE: message }, {}, {});
+function chainWithNext(blockXml: string, nextXml: string): string {
+  const closingTag = '</block>';
+  const lastCloseIdx = blockXml.lastIndexOf(closingTag);
+  if (lastCloseIdx === -1) {
+    return blockXml;
+  }
+  return blockXml.slice(0, lastCloseIdx) + `<next>${nextXml}</next>` + blockXml.slice(lastCloseIdx);
 }
 
-function unsupportedBlock(code: string): string {
-  return makeBlock(PYTHON_BLOCK_TYPES.UNSUPPORTED, { CODE: code }, {}, {});
+function setBlockPosition(blockXml: string, x: number, y: number): string {
+  return blockXml.replace(/^<block\b([^>]*)>/, `<block$1 x="${x}" y="${y}">`);
+}
+
+function errorBlock(message: string): string {
+  return makeBlock(PYTHON_BLOCK_TYPES.ERROR, { MESSAGE: message }, {}, {});
 }
 
 function nodeText(node: SyntaxNode, source: string): string {
@@ -105,6 +108,83 @@ function childrenByType(node: SyntaxNode, ...types: string[]): SyntaxNode[] {
   return result;
 }
 
+function isTokenNode(type: string): boolean {
+  return type === '' || /^[^A-Za-z]+$/.test(type);
+}
+
+function isKeywordNode(type: string): boolean {
+  return new Set([
+    'if',
+    'else',
+    'elif',
+    'for',
+    'in',
+    'while',
+    'return',
+    'def',
+    'class',
+    'lambda',
+    'yield',
+    'await',
+    'from',
+    'import',
+    'as',
+    'try',
+    'except',
+    'finally',
+    'with',
+    'async',
+    'pass',
+    'and',
+    'or',
+    'not',
+  ]).has(type);
+}
+
+function isIgnorableLeaf(type: string): boolean {
+  return type === 'newline' || type === 'indent' || type === 'dedent' || type === 'Comment';
+}
+
+function meaningfulChildren(node: SyntaxNode): SyntaxNode[] {
+  return allChildren(node).filter((child) => {
+    const type = child.type.name;
+    return !isIgnorableLeaf(type) && !isTokenNode(type) && !isKeywordNode(type) && type !== ':';
+  });
+}
+
+function makeCstExprBlock(node: SyntaxNode, source: string): string {
+  return makeBlock(
+    PYTHON_BLOCK_TYPES.CST_EXPR,
+    { NODE: node.type.name, CODE: nodeText(node, source) },
+    {},
+    {},
+  );
+}
+
+function makeCstStmtBlock(node: SyntaxNode, source: string): string {
+  return makeBlock(
+    PYTHON_BLOCK_TYPES.CST_STMT,
+    { NODE: node.type.name, CODE: nodeText(node, source) },
+    {},
+    {},
+  );
+}
+
+function comprehensionKind(nodeType: string): string {
+  switch (nodeType) {
+    case 'ArrayComprehensionExpression':
+      return 'list';
+    case 'SetComprehensionExpression':
+      return 'set';
+    case 'DictionaryComprehensionExpression':
+      return 'dict';
+    case 'ComprehensionExpression':
+      return 'generator';
+    default:
+      return 'list';
+  }
+}
+
 const ARITH_OPS: Record<string, string> = {
   '+': PYTHON_BLOCK_TYPES.ADD,
   '-': PYTHON_BLOCK_TYPES.SUBTRACT,
@@ -138,7 +218,12 @@ function exprToBlock(node: SyntaxNode, source: string, errors: TranslationError[
     }
     case 'Boolean': {
       const val = nodeText(node, source);
-      return makeBlock(PYTHON_BLOCK_TYPES.BOOLEAN, { VALUE: val === 'True' ? 'True' : 'False' }, {}, {});
+      return makeBlock(
+        PYTHON_BLOCK_TYPES.BOOLEAN,
+        { VALUE: val === 'True' ? 'True' : 'False' },
+        {},
+        {},
+      );
     }
     case 'None':
       return makeBlock(PYTHON_BLOCK_TYPES.NONE, {}, {}, {});
@@ -147,8 +232,7 @@ function exprToBlock(node: SyntaxNode, source: string, errors: TranslationError[
     case 'BinaryExpression': {
       const children = allChildren(node);
       if (children.length < 3) {
-        errors.push(unsupportedError(node, source));
-        return unsupportedBlock(nodeText(node, source));
+        return makeCstExprBlock(node, source);
       }
       const leftNode = children[0]!;
       const opNode = children[1]!;
@@ -166,8 +250,7 @@ function exprToBlock(node: SyntaxNode, source: string, errors: TranslationError[
       if (op === 'and' || op === 'or') {
         return makeBlock(PYTHON_BLOCK_TYPES.BOOL_OP, { OP: op }, { LEFT: left, RIGHT: right }, {});
       }
-      errors.push(unsupportedError(node, source));
-      return unsupportedBlock(nodeText(node, source));
+      return makeCstExprBlock(node, source);
     }
     case 'UnaryExpression': {
       const children = allChildren(node);
@@ -178,23 +261,19 @@ function exprToBlock(node: SyntaxNode, source: string, errors: TranslationError[
           return makeBlock(PYTHON_BLOCK_TYPES.NOT, {}, { VALUE: val }, {});
         }
       }
-      errors.push(unsupportedError(node, source));
-      return unsupportedBlock(nodeText(node, source));
+      return makeCstExprBlock(node, source);
     }
     case 'CallExpression': {
       const children = allChildren(node);
       if (children.length < 1) {
-        errors.push(unsupportedError(node, source));
-        return unsupportedBlock(nodeText(node, source));
+        return makeCstExprBlock(node, source);
       }
       const funcNode = children[0]!;
       const funcName = nodeText(funcNode, source);
       const argListNode = childByType(node, 'ArgList');
       let arg0 = '';
       if (argListNode) {
-        const argChildren = allChildren(argListNode).filter(
-          (c) => c.type.name !== ',' && c.type.name !== '(' && c.type.name !== ')',
-        );
+        const argChildren = meaningfulChildren(argListNode);
         if (argChildren.length > 0) {
           arg0 = exprToBlock(argChildren[0]!, source, errors);
         }
@@ -210,29 +289,63 @@ function exprToBlock(node: SyntaxNode, source: string, errors: TranslationError[
       );
     }
     case 'ArrayExpression': {
-      const items = allChildren(node).filter(
-        (c) => c.type.name !== '[' && c.type.name !== ']' && c.type.name !== ',',
-      );
+      const items = meaningfulChildren(node);
       const itemXml = items.length > 0 ? exprToBlock(items[0]!, source, errors) : '';
       return makeBlock(PYTHON_BLOCK_TYPES.LIST, {}, itemXml ? { ITEMS: itemXml } : {}, {});
     }
+    case 'TupleExpression': {
+      const items = meaningfulChildren(node);
+      const itemXml = items.length > 0 ? exprToBlock(items[0]!, source, errors) : '';
+      return makeBlock(PYTHON_BLOCK_TYPES.TUPLE, {}, itemXml ? { ITEMS: itemXml } : {}, {});
+    }
+    case 'DictionaryExpression': {
+      const parts = meaningfulChildren(node);
+      const entryXml = parts.length > 0 ? exprToBlock(parts[0]!, source, errors) : '';
+      return makeBlock(PYTHON_BLOCK_TYPES.DICT, {}, entryXml ? { ITEMS: entryXml } : {}, {});
+    }
+    case 'MemberExpression': {
+      const parts = meaningfulChildren(node);
+      if (parts.length >= 2) {
+        const leftXml = exprToBlock(parts[0]!, source, errors);
+        const rightPart = parts[1]!;
+        if (rightPart.type.name === 'PropertyName') {
+          return makeBlock(PYTHON_BLOCK_TYPES.ATTR, { ATTR: nodeText(rightPart, source) }, { OBJ: leftXml }, {});
+        }
+        return makeBlock(PYTHON_BLOCK_TYPES.INDEX, {}, { VALUE: leftXml, INDEX: exprToBlock(rightPart, source, errors) }, {});
+      }
+      return makeCstExprBlock(node, source);
+    }
+    case 'ArrayComprehensionExpression':
+    case 'SetComprehensionExpression':
+    case 'DictionaryComprehensionExpression':
+    case 'ComprehensionExpression':
+      return makeBlock(
+        PYTHON_BLOCK_TYPES.COMPREHENSION,
+        { KIND: comprehensionKind(type), CODE: nodeText(node, source) },
+        {},
+        {},
+      );
+    case 'LambdaExpression':
+    case 'AwaitExpression':
+    case 'ConditionalExpression':
+      return makeCstExprBlock(node, source);
     case 'ParenthesizedExpression': {
       // Unwrap the inner expression
-      const inner = allChildren(node).find(
-        (c) => c.type.name !== '(' && c.type.name !== ')',
-      );
+      const inner = meaningfulChildren(node)[0];
       if (inner) return exprToBlock(inner, source, errors);
-      errors.push(unsupportedError(node, source));
-      return unsupportedBlock(nodeText(node, source));
+      return makeCstExprBlock(node, source);
     }
     default: {
-      errors.push(unsupportedError(node, source));
-      return unsupportedBlock(nodeText(node, source));
+      return makeCstExprBlock(node, source);
     }
   }
 }
 
-function statementsInBody(bodyNode: SyntaxNode, source: string, errors: TranslationError[]): string {
+function statementsInBody(
+  bodyNode: SyntaxNode,
+  source: string,
+  errors: TranslationError[],
+): string {
   // Body contains ':', newlines, and statements
   const stmts = allChildren(bodyNode).filter((c) => {
     const t = c.type.name;
@@ -249,10 +362,10 @@ function statementsInBody(bodyNode: SyntaxNode, source: string, errors: Translat
   // Chain statements via stmtToBlocksNoChain then linking with <next>
   const xmlParts = stmts.map((s) => stmtToBlocksNoChain(s, source, errors)).filter((x) => x !== '');
   if (xmlParts.length === 0) return '';
-  // Chain: wrap each block in the previous's <next>
+  // Chain body statements vertically via <next> on each outer statement block.
   let result = xmlParts[xmlParts.length - 1]!;
   for (let i = xmlParts.length - 2; i >= 0; i--) {
-    result = xmlParts[i]!.replace('</block>', `<next>${result}</next></block>`);
+    result = chainWithNext(xmlParts[i]!, result);
   }
   return result;
 }
@@ -266,8 +379,7 @@ function stmtToBlocksNoChain(node: SyntaxNode, source: string, errors: Translati
       // VariableName, AssignOp, rhs
       const assignOpIdx = children.findIndex((c) => c.type.name === 'AssignOp');
       if (assignOpIdx < 1) {
-        errors.push(unsupportedError(node, source));
-        return unsupportedBlock(nodeText(node, source));
+        return makeCstStmtBlock(node, source);
       }
       const lhsNode = children[assignOpIdx - 1]!;
       const rhsNode = children[assignOpIdx + 1];
@@ -280,7 +392,11 @@ function stmtToBlocksNoChain(node: SyntaxNode, source: string, errors: Translati
     case 'ExpressionStatement': {
       const exprNode = node.firstChild;
       if (!exprNode) return '';
-      return exprToBlock(exprNode, source, errors);
+      const exprXml = exprToBlock(exprNode, source, errors);
+      if (exprXml.includes(`type="${PYTHON_BLOCK_TYPES.PRINT}"`)) {
+        return exprXml;
+      }
+      return makeBlock(PYTHON_BLOCK_TYPES.EXPR_STMT, {}, { VALUE: exprXml }, {});
     }
     case 'IfStatement': {
       // if <cond> <Body> [elif/else ...]
@@ -337,8 +453,7 @@ function stmtToBlocksNoChain(node: SyntaxNode, source: string, errors: Translati
       const children = allChildren(node);
       const inIdx = children.findIndex((c) => c.type.name === 'in');
       if (inIdx < 1) {
-        errors.push(unsupportedError(node, source));
-        return unsupportedBlock(nodeText(node, source));
+        return makeCstStmtBlock(node, source);
       }
       const varNode = children[inIdx - 1]!;
       const bodyNode = childByType(node, 'Body');
@@ -373,18 +488,31 @@ function stmtToBlocksNoChain(node: SyntaxNode, source: string, errors: Translati
         { BODY: bodyXml },
       );
     }
+    case 'DecoratedStatement': {
+      const decorators = childrenByType(node, 'Decorator')
+        .map((decorator) => nodeText(decorator, source).trim())
+        .join(', ');
+      const target = meaningfulChildren(node).find((child) => child.type.name !== 'Decorator');
+      const targetCode = target ? nodeText(target, source) : '';
+      return makeBlock(
+        PYTHON_BLOCK_TYPES.DECORATED,
+        { DECORATORS: decorators || '@decorator', TARGET: targetCode || nodeText(node, source) },
+        {},
+        {},
+      );
+    }
     case 'ReturnStatement': {
       // return <expr>
       const children = allChildren(node);
       // First child is 'return' keyword
       const exprNode = children.length > 1 ? children[1] : null;
       const valueXml = exprNode ? exprToBlock(exprNode, source, errors) : '';
-      return makeBlock(
-        PYTHON_BLOCK_TYPES.RETURN,
-        {},
-        valueXml ? { VALUE: valueXml } : {},
-        {},
-      );
+      return makeBlock(PYTHON_BLOCK_TYPES.RETURN, {}, valueXml ? { VALUE: valueXml } : {}, {});
+    }
+    case 'YieldStatement': {
+      const children = meaningfulChildren(node);
+      const valueXml = children[0] ? exprToBlock(children[0], source, errors) : '';
+      return makeBlock(PYTHON_BLOCK_TYPES.EXPR_STMT, {}, valueXml ? { VALUE: valueXml } : {}, {});
     }
     case 'ImportStatement': {
       const children = allChildren(node);
@@ -416,8 +544,7 @@ function stmtToBlocksNoChain(node: SyntaxNode, source: string, errors: Translati
         errors.push(parseError);
         return errorBlock(`Parse error: ${nodeText(node, source).slice(0, 30)}`);
       }
-      errors.push(unsupportedError(node, source));
-      return unsupportedBlock(nodeText(node, source));
+      return makeCstStmtBlock(node, source);
     }
   }
 }
@@ -456,11 +583,50 @@ export function pythonToBlocks(source: string): ParseResult {
       };
     }
 
-    const xmlParts = topStatements
-      .map((stmt) => stmtToBlocksNoChain(stmt, source, errors))
-      .filter((x) => x !== '');
+    const items = topStatements
+      .map((stmt) => {
+        const xml = stmtToBlocksNoChain(stmt, source, errors);
+        return {
+          xml,
+          location: getLocation(stmt, source),
+        };
+      })
+      .filter((item) => item.xml !== '');
 
-    const blocksContent = xmlParts.join('');
+    if (items.length === 0) {
+      return {
+        success: true,
+        blocksXml: '<xml xmlns="https://developers.google.com/blockly/xml"></xml>',
+        errors,
+      };
+    }
+
+    const groups: Array<typeof items> = [];
+    let currentGroup = [items[0]!];
+    for (let i = 1; i < items.length; i++) {
+      const previous = items[i - 1]!;
+      const current = items[i]!;
+      const previousEndLine = previous.location.endLine ?? previous.location.line;
+      const hasBlankLineBetween = current.location.line - previousEndLine > 1;
+      if (hasBlankLineBetween) {
+        groups.push(currentGroup);
+        currentGroup = [current];
+      } else {
+        currentGroup.push(current);
+      }
+    }
+    groups.push(currentGroup);
+
+    const topBlocks = groups.map((group) => {
+      let chainXml = group[group.length - 1]!.xml;
+      for (let i = group.length - 2; i >= 0; i--) {
+        chainXml = chainWithNext(group[i]!.xml, chainXml);
+      }
+      const startLine = group[0]!.location.line;
+      return setBlockPosition(chainXml, 20, 20 + (startLine - 1) * 70);
+    });
+
+    const blocksContent = topBlocks.join('');
     const blocksXml = `<xml xmlns="https://developers.google.com/blockly/xml">${blocksContent}</xml>`;
     const hasParseErrors = errors.some((e) => e.type === 'parse_error');
     return { success: !hasParseErrors, blocksXml, errors };
