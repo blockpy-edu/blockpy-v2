@@ -301,6 +301,11 @@
   min-height: 0;
 }
 
+.editor-panes.dragging,
+.editor-panes.dragging * {
+  cursor: col-resize;
+}
+
 .editor-pane {
   flex: 1;
   display: flex;
@@ -310,10 +315,16 @@
 }
 
 .editor-divider {
-  width: 4px;
+  width: 8px;
   background: var(--color-border);
   flex-shrink: 0;
   cursor: col-resize;
+  touch-action: none;
+}
+
+.editor-divider:hover,
+.editor-panes.dragging .editor-divider {
+  background: var(--color-border-strong);
 }
 
 .pane-header {

@@ -23,6 +23,8 @@ export function BlocklyWorkspace({ blocksXml, onCodeChange, className }: Blockly
 
   useEffect(() => {
     let mounted = true;
+    let resizeObserver: ResizeObserver | null = null;
+    let resizeFallbackHandler: (() => void) | null = null;
 
     const init = async () => {
       if (!containerRef.current) return;
@@ -41,6 +43,25 @@ export function BlocklyWorkspace({ blocksXml, onCodeChange, className }: Blockly
         });
 
         workspaceRef.current = workspace;
+
+        // Keep Blockly's SVG viewport in sync with CSS-driven pane resizes.
+        const triggerResize = () => {
+          if (workspaceRef.current) {
+            Blockly.svgResize(workspaceRef.current);
+          }
+        };
+
+        triggerResize();
+
+        if (typeof ResizeObserver !== 'undefined') {
+          resizeObserver = new ResizeObserver(() => {
+            triggerResize();
+          });
+          resizeObserver.observe(containerRef.current);
+        } else {
+          resizeFallbackHandler = triggerResize;
+          window.addEventListener('resize', resizeFallbackHandler);
+        }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         workspace.addChangeListener((event: any) => {
@@ -73,6 +94,16 @@ export function BlocklyWorkspace({ blocksXml, onCodeChange, className }: Blockly
 
     return () => {
       mounted = false;
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+        resizeObserver = null;
+      }
+
+      if (resizeFallbackHandler) {
+        window.removeEventListener('resize', resizeFallbackHandler);
+        resizeFallbackHandler = null;
+      }
+
       if (workspaceRef.current) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (workspaceRef.current as any).dispose();

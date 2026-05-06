@@ -6,6 +6,12 @@ import { loadPyodide, runPython, isPyodideLoaded } from '../services/pyodideRunn
 import type { SyncState, TranslationError, ExecutionResult } from '../types';
 
 const INITIAL_CODE = `x = 5\nprint(x)\n`;
+const MIN_LEFT_PANE_PERCENT = 20;
+const MAX_LEFT_PANE_PERCENT = 80;
+
+function clampPanePercent(value: number): number {
+  return Math.min(MAX_LEFT_PANE_PERCENT, Math.max(MIN_LEFT_PANE_PERCENT, value));
+}
 
 export function BlockPyEditor() {
   const [code, setCode] = useState(INITIAL_CODE);
@@ -24,6 +30,10 @@ export function BlockPyEditor() {
   const [isLoadingPyodide, setIsLoadingPyodide] = useState(false);
   const [parseErrors, setParseErrors] = useState<TranslationError[]>([]);
   const [hasRun, setHasRun] = useState(false);
+  const [leftPanePercent, setLeftPanePercent] = useState(50);
+  const [isDraggingDivider, setIsDraggingDivider] = useState(false);
+  const editorPanesRef = useRef<HTMLDivElement | null>(null);
+  const draggingRef = useRef(false);
 
   const syncControllerRef = useRef(
     createSyncController({
@@ -40,6 +50,81 @@ export function BlockPyEditor() {
   useEffect(() => {
     const controller = syncControllerRef.current;
     return () => controller.dispose();
+  }, []);
+
+  useEffect(() => {
+    if (!isDraggingDivider) {
+      return;
+    }
+
+    const previousUserSelect = document.body.style.userSelect;
+    const previousCursor = document.body.style.cursor;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    return () => {
+      document.body.style.userSelect = previousUserSelect;
+      document.body.style.cursor = previousCursor;
+    };
+  }, [isDraggingDivider]);
+
+  const updatePaneSplitFromClientX = useCallback((clientX: number) => {
+    const panesElement = editorPanesRef.current;
+    if (!panesElement) {
+      return;
+    }
+
+    const rect = panesElement.getBoundingClientRect();
+    if (rect.width <= 0) {
+      return;
+    }
+
+    const rawPercent = ((clientX - rect.left) / rect.width) * 100;
+    setLeftPanePercent(clampPanePercent(rawPercent));
+  }, []);
+
+  const handleDividerPointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (event.pointerType === 'mouse' && event.button !== 0) {
+        return;
+      }
+
+      event.preventDefault();
+      draggingRef.current = true;
+      setIsDraggingDivider(true);
+      event.currentTarget.setPointerCapture(event.pointerId);
+      updatePaneSplitFromClientX(event.clientX);
+    },
+    [updatePaneSplitFromClientX],
+  );
+
+  const handleDividerPointerMove = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!draggingRef.current) {
+        return;
+      }
+      updatePaneSplitFromClientX(event.clientX);
+    },
+    [updatePaneSplitFromClientX],
+  );
+
+  const stopDividerDrag = useCallback(() => {
+    draggingRef.current = false;
+    setIsDraggingDivider(false);
+  }, []);
+
+  const handleDividerKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = 2;
+
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      setLeftPanePercent((prev) => clampPanePercent(prev - step));
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      setLeftPanePercent((prev) => clampPanePercent(prev + step));
+    }
   }, []);
 
   const handleTextChange = useCallback((newCode: string) => {
@@ -102,7 +187,6 @@ export function BlockPyEditor() {
 
   return (
     <div className="blockpy-editor" role="main" aria-label="BlockPy dual Python editor">
-
       {/* Row 1: Problem description */}
       <div className="blockpy-header-row">
         <div className="blockpy-description" role="heading" aria-label="Assignment Description">
@@ -120,7 +204,6 @@ export function BlockPyEditor() {
 
       {/* Row 2: Console + Feedback */}
       <div className="blockpy-second-row">
-
         {/* Console */}
         <div className="blockpy-console" role="region" aria-label="Console">
           <strong>Console:</strong>
@@ -132,17 +215,19 @@ export function BlockPyEditor() {
             ) : (
               <span className="output-placeholder">Run your code to see output here</span>
             )}
-            {executionError && (
-              <span className="error-line">{executionError}</span>
-            )}
+            {executionError && <span className="error-line">{executionError}</span>}
           </div>
         </div>
 
         {/* Feedback */}
-        <div className="blockpy-feedback-panel" role="region" aria-label="Feedback" aria-live="polite">
+        <div
+          className="blockpy-feedback-panel"
+          role="region"
+          aria-label="Feedback"
+          aria-live="polite"
+        >
           <strong>
-            Feedback:{' '}
-            <span className={feedbackBadgeClass}>{feedbackCategory}</span>
+            Feedback: <span className={feedbackBadgeClass}>{feedbackCategory}</span>
           </strong>
           <div className="blockpy-feedback-content">
             {parseErrors.length > 0 ? (
@@ -153,7 +238,8 @@ export function BlockPyEditor() {
                     {err.message}
                     {err.location && (
                       <span className="parse-error-location">
-                        {' '}(line {err.location.line}, col {err.location.col})
+                        {' '}
+                        (line {err.location.line}, col {err.location.col})
                       </span>
                     )}
                   </div>
@@ -168,12 +254,10 @@ export function BlockPyEditor() {
             )}
           </div>
         </div>
-
       </div>
 
       {/* Row 3: Toolbar + Editor panes */}
       <div className="blockpy-editor-row">
-
         {/* Toolbar */}
         <div className="toolbar" role="toolbar" aria-label="Editor controls">
           <button
@@ -207,8 +291,12 @@ export function BlockPyEditor() {
         </div>
 
         {/* Editor panes */}
-        <div className="editor-panes">
-          <div className="editor-pane" aria-label="Block editor pane">
+        <div className={`editor-panes${isDraggingDivider ? ' dragging' : ''}`} ref={editorPanesRef}>
+          <div
+            className="editor-pane"
+            aria-label="Block editor pane"
+            style={{ flex: `0 0 ${leftPanePercent}%` }}
+          >
             <div className="pane-header">
               <h2>Blocks</h2>
             </div>
@@ -221,7 +309,21 @@ export function BlockPyEditor() {
             </div>
           </div>
 
-          <div className="editor-divider" role="separator" aria-orientation="vertical" />
+          <div
+            className="editor-divider"
+            role="separator"
+            aria-orientation="vertical"
+            aria-valuemin={MIN_LEFT_PANE_PERCENT}
+            aria-valuemax={MAX_LEFT_PANE_PERCENT}
+            aria-valuenow={Math.round(leftPanePercent)}
+            tabIndex={0}
+            onPointerDown={handleDividerPointerDown}
+            onPointerMove={handleDividerPointerMove}
+            onPointerUp={stopDividerDrag}
+            onPointerCancel={stopDividerDrag}
+            onLostPointerCapture={stopDividerDrag}
+            onKeyDown={handleDividerKeyDown}
+          />
 
           <div className="editor-pane" aria-label="Code editor pane">
             <div className="pane-header">
@@ -236,7 +338,6 @@ export function BlockPyEditor() {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
