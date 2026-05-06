@@ -104,7 +104,7 @@ describe('BlockPyEditor', () => {
 
   it('renders output panel', () => {
     render(<BlockPyEditor />);
-    expect(screen.getByLabelText('Program output')).toBeInTheDocument();
+    expect(screen.getByLabelText('Console')).toBeInTheDocument();
   });
 
   it('shows placeholder text in output panel initially', () => {
