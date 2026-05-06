@@ -30,7 +30,7 @@ export function BlocklyWorkspace({ blocksXml, onCodeChange, className }: Blockly
       try {
         if (!mounted) return;
 
-        Blockly.setLocale(BlocklyMsgEn);
+        Blockly.setLocale(BlocklyMsgEn as unknown as { [key: string]: string });
         registerPythonBlocks(Blockly);
 
         const workspace = Blockly.inject(containerRef.current, {
