@@ -1,4 +1,4 @@
-import type { SyncSource, SyncState, TranslationError } from '../types';
+import type { SyncSource, SyncState, TranslationError } from '../../types';
 import { pythonToBlocks } from './pythonToBlocks';
 
 const DEBOUNCE_MS = 300;

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { registerPythonBlocks, PYTHON_TOOLBOX } from '../services/pythonBlocks';
-import { workspaceToPython } from '../services/blockToPython';
+import { registerPythonBlocks, PYTHON_TOOLBOX } from '../../services/mlt/pythonBlocks';
+import { workspaceToPython } from '../../services/mlt/blockToPython';
 import * as Blockly from 'blockly/core';
 import * as BlocklyMsgEn from 'blockly/msg/en';
 

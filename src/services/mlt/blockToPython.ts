@@ -1,5 +1,5 @@
 import { PYTHON_BLOCK_TYPES } from './pythonBlocks';
-import type { TranslationError } from '../types';
+import type { TranslationError } from '../../types';
 
 export interface BlockToPythonResult {
   code: string;

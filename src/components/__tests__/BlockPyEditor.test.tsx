@@ -57,7 +57,8 @@ vi.mock('@codemirror/commands', () => ({
 
 vi.mock('@codemirror/lang-python', async () => {
   // We still need the real parser for pythonToBlocks - only mock the python() extension
-  const real = await vi.importActual<typeof import('@codemirror/lang-python')>('@codemirror/lang-python');
+  const real =
+    await vi.importActual<typeof import('@codemirror/lang-python')>('@codemirror/lang-python');
   return {
     ...real,
     python: vi.fn(() => ({})),
@@ -81,7 +82,7 @@ vi.mock('../services/pyodideRunner', () => ({
   resetPyodide: vi.fn(),
 }));
 
-import { BlockPyEditor } from '../BlockPyEditor';
+import { BlockPyEditor } from '../code-editor/BlockPyEditor';
 
 describe('BlockPyEditor', () => {
   it('renders without crashing', () => {

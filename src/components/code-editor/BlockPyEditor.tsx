@@ -1,11 +1,17 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { BlocklyWorkspace } from './BlocklyWorkspace';
 import { CodeMirrorEditor } from './CodeMirrorEditor';
-import { createSyncController } from '../services/syncController';
-import { loadPyodide, runPython, isPyodideLoaded } from '../services/pyodideRunner';
-import type { SyncState, TranslationError, ExecutionResult } from '../types';
+import { createSyncController } from '../../services/mlt/syncController';
+import { pythonToBlocks } from '../../services/mlt/pythonToBlocks';
+import { loadPyodide, runPython, isPyodideLoaded } from '../../services/pyodideRunner';
+import type { SyncState, TranslationError, ExecutionResult } from '../../types';
 
 const INITIAL_CODE = `x = 5\nprint(x)\n`;
+const EMPTY_BLOCKS_XML = '<xml xmlns="https://developers.google.com/blockly/xml"></xml>';
+const INITIAL_PARSE_RESULT = pythonToBlocks(INITIAL_CODE);
+const INITIAL_BLOCKS_XML = INITIAL_PARSE_RESULT.success
+  ? (INITIAL_PARSE_RESULT.blocksXml ?? EMPTY_BLOCKS_XML)
+  : EMPTY_BLOCKS_XML;
 const MIN_LEFT_PANE_PERCENT = 20;
 const MAX_LEFT_PANE_PERCENT = 80;
 
@@ -15,14 +21,14 @@ function clampPanePercent(value: number): number {
 
 export function BlockPyEditor() {
   const [code, setCode] = useState(INITIAL_CODE);
-  const [blocksXml, setBlocksXml] = useState<string | undefined>(undefined);
+  const [blocksXml, setBlocksXml] = useState<string | undefined>(INITIAL_BLOCKS_XML);
   const [syncState, setSyncState] = useState<SyncState>({
     source: 'external',
     isDirty: false,
-    lastValidBlocksXml: '<xml xmlns="https://developers.google.com/blockly/xml"></xml>',
+    lastValidBlocksXml: INITIAL_BLOCKS_XML,
     lastValidPython: INITIAL_CODE,
     isParsing: false,
-    parseErrors: [],
+    parseErrors: INITIAL_PARSE_RESULT.errors,
   });
   const [output, setOutput] = useState('');
   const [executionError, setExecutionError] = useState<string | null>(null);
@@ -170,9 +176,10 @@ export function BlockPyEditor() {
     setOutput('');
     setExecutionError(null);
     setHasRun(false);
-    setParseErrors([]);
-    setBlocksXml(undefined);
+    setParseErrors(INITIAL_PARSE_RESULT.errors);
+    setBlocksXml(INITIAL_BLOCKS_XML);
     syncControllerRef.current.reset();
+    syncControllerRef.current.onTextChange(INITIAL_CODE);
   }, []);
 
   const syncSource = syncState.source;

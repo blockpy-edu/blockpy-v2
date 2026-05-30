@@ -1,6 +1,6 @@
 import { pythonLanguage } from '@codemirror/lang-python';
 import type { SyntaxNode } from '@lezer/common';
-import type { ParseResult, TranslationError, SourceLocation } from '../types';
+import type { ParseResult, TranslationError, SourceLocation } from '../../types';
 import { PYTHON_BLOCK_TYPES } from './pythonBlocks';
 
 const parser = pythonLanguage.parser;

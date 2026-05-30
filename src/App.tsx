@@ -1,4 +1,4 @@
-import { BlockPyEditor } from './components/BlockPyEditor';
+import { BlockPyEditor } from './components/code-editor/BlockPyEditor';
 import './App.css';
 
 function App() {
