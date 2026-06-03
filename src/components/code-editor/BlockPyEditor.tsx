@@ -3,7 +3,7 @@ import { BlocklyWorkspace } from './BlocklyWorkspace';
 import { CodeMirrorEditor } from './CodeMirrorEditor';
 import { createSyncController } from '../../services/mlt/syncController';
 import { pythonToBlocks } from '../../services/mlt/pythonToBlocks';
-import { loadPyodide, runPython, isPyodideLoaded } from '../../services/pyodideRunner';
+import { loadPyodide, runPython, isPyodideLoaded } from '../../services/python/pyodideRunner';
 import type { SyncState, TranslationError, ExecutionResult } from '../../types';
 
 const INITIAL_CODE = `x = 5\nprint(x)\n`;

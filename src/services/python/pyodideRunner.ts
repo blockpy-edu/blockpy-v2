@@ -1,4 +1,4 @@
-import type { ExecutionResult, RuntimeError } from '../types';
+import type { ExecutionResult, RuntimeError } from '../../types';
 
 declare global {
   interface Window {
@@ -68,8 +68,16 @@ export async function runPython(code: string): Promise<ExecutionResult> {
   let stderr = '';
 
   try {
-    pyodideInstance.setStdout({ batched: (text: string) => { stdout += text + '\n'; } });
-    pyodideInstance.setStderr({ batched: (text: string) => { stderr += text + '\n'; } });
+    pyodideInstance.setStdout({
+      batched: (text: string) => {
+        stdout += text + '\n';
+      },
+    });
+    pyodideInstance.setStderr({
+      batched: (text: string) => {
+        stderr += text + '\n';
+      },
+    });
 
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Execution timeout')), EXECUTION_TIMEOUT_MS),
@@ -86,7 +94,11 @@ export async function runPython(code: string): Promise<ExecutionResult> {
       return {
         stdout: stdout.trim(),
         stderr: stderr.trim(),
-        error: { type: 'TimeoutError', message: 'Code execution timed out after 10s', traceback: '' },
+        error: {
+          type: 'TimeoutError',
+          message: 'Code execution timed out after 10s',
+          traceback: '',
+        },
         executionTime,
       };
     }

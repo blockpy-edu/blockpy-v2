@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { runPython, isPyodideLoaded, resetPyodide, loadPyodide } from '../pyodideRunner';
+import { runPython, isPyodideLoaded, resetPyodide, loadPyodide } from '../python/pyodideRunner';
 
 describe('pyodideRunner', () => {
   beforeEach(() => {
