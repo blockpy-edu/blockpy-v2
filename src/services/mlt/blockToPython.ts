@@ -69,7 +69,7 @@ function blockToCode(block: BlocklyBlock, errors: TranslationError[]): string {
 function statementToCode(block: BlocklyBlock, errors: TranslationError[]): string {
   if (!block) return '';
   const lines: string[] = [];
-  let current: BlocklyBlock = block;
+  let current: BlocklyBlock | null = block;
   while (current) {
     const line = blockToCode(current, errors);
     if (line) lines.push(line);
@@ -92,7 +92,9 @@ export function workspaceToPython(workspace: any): BlockToPythonResult {
     if (code.trim()) {
       lines.push(code);
       // Follow next statements for top-level statement blocks
-      let next: BlocklyBlock = block.getNextBlock ? (block.getNextBlock() as BlocklyBlock) : null;
+      let next: BlocklyBlock | null = block.getNextBlock
+        ? (block.getNextBlock() as BlocklyBlock)
+        : null;
       while (next) {
         const nextCode = blockToCode(next, errors);
         if (nextCode.trim()) lines.push(nextCode);
