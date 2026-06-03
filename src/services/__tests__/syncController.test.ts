@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createSyncController } from '../syncController';
-import type { SyncCallbacks } from '../syncController';
+import { createSyncController } from '../mlt/syncController';
+import type { SyncCallbacks } from '../mlt/syncController';
 import type { SyncState } from '../../types';
 
 function makeCallbacks(): SyncCallbacks & {
@@ -23,7 +23,9 @@ function makeCallbacks(): SyncCallbacks & {
     },
     onCodeUpdate: (code: string) => codeUpdates.push(code),
     onBlocksUpdate: (xml: string) => blocksUpdates.push(xml),
-    onParseErrors: () => { parseErrorCalls++; },
+    onParseErrors: () => {
+      parseErrorCalls++;
+    },
     onSyncStateChange: (state: SyncState) => stateUpdates.push({ ...state }),
   };
 }

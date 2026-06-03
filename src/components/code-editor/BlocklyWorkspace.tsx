@@ -7,10 +7,16 @@ import * as BlocklyMsgEn from 'blockly/msg/en';
 interface BlocklyWorkspaceProps {
   blocksXml?: string;
   onCodeChange: (code: string, blocksXml: string) => void;
+  readOnly?: boolean;
   className?: string;
 }
 
-export function BlocklyWorkspace({ blocksXml, onCodeChange, className }: BlocklyWorkspaceProps) {
+export function BlocklyWorkspace({
+  blocksXml,
+  onCodeChange,
+  readOnly = false,
+  className,
+}: BlocklyWorkspaceProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const workspaceRef = useRef<any>(null);
@@ -37,9 +43,10 @@ export function BlocklyWorkspace({ blocksXml, onCodeChange, className }: Blockly
 
         const workspace = Blockly.inject(containerRef.current, {
           toolbox: PYTHON_TOOLBOX,
+          readOnly,
           grid: { spacing: 20, length: 3, colour: '#ccc', snap: true },
-          zoom: { controls: true, wheel: true, startScale: 1.0 },
-          trashcan: true,
+          zoom: { controls: !readOnly, wheel: true, startScale: 1.0 },
+          trashcan: !readOnly,
         });
 
         workspaceRef.current = workspace;
@@ -110,7 +117,7 @@ export function BlocklyWorkspace({ blocksXml, onCodeChange, className }: Blockly
         workspaceRef.current = null;
       }
     };
-  }, []);
+  }, [readOnly]);
 
   // Sync external blocksXml into workspace
   useEffect(() => {

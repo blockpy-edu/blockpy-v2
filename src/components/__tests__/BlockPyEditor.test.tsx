@@ -1,29 +1,58 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { resolveBlockPyConfig } from '../../embed/config';
+
+const { runPythonMock } = vi.hoisted(() => ({
+  runPythonMock: vi.fn().mockResolvedValue({ stdout: 'ok', stderr: '', executionTime: 5 }),
+}));
 
 // Mock Blockly - it relies on DOM/canvas APIs not available in jsdom
-vi.mock('blockly', () => ({
-  default: {
-    Blocks: {},
-    inject: vi.fn(() => ({
-      addChangeListener: vi.fn(),
-      dispose: vi.fn(),
-      clear: vi.fn(),
-      getTopBlocks: vi.fn(() => []),
-    })),
-    Events: {
-      BLOCK_MOVE: 'move',
-      BLOCK_CHANGE: 'change',
-      BLOCK_DELETE: 'delete',
-      BLOCK_CREATE: 'create',
-    },
-    Xml: {
-      workspaceToDom: vi.fn(() => ({})),
-      domToText: vi.fn(() => '<xml></xml>'),
+vi.mock('blockly/core', () => ({
+  Blocks: {},
+  inject: vi.fn(() => ({
+    addChangeListener: vi.fn(),
+    dispose: vi.fn(),
+    clear: vi.fn(),
+    getTopBlocks: vi.fn(() => []),
+  })),
+  Events: {
+    disable: vi.fn(),
+    enable: vi.fn(),
+    BLOCK_MOVE: 'move',
+    BLOCK_CHANGE: 'change',
+    BLOCK_DELETE: 'delete',
+    BLOCK_CREATE: 'create',
+  },
+  Xml: {
+    workspaceToDom: vi.fn(() => ({})),
+    domToText: vi.fn(() => '<xml></xml>'),
+    textToDom: vi.fn(() => ({})),
+    domToWorkspace: vi.fn(),
+  },
+  utils: {
+    xml: {
       textToDom: vi.fn(() => ({})),
-      domToWorkspace: vi.fn(),
     },
   },
+  svgResize: vi.fn(),
+  setLocale: vi.fn(),
+}));
+
+vi.mock('blockly/msg/en', () => ({
+  default: {},
+}));
+
+vi.mock('../../services/mlt/pythonBlocks', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../services/mlt/pythonBlocks')>();
+  return {
+    ...actual,
+    registerPythonBlocks: vi.fn(),
+    PYTHON_TOOLBOX: '<xml></xml>',
+  };
+});
+
+vi.mock('../../services/mlt/blockToPython', () => ({
+  workspaceToPython: vi.fn(() => ({ code: 'print(1)' })),
 }));
 
 // Mock CodeMirror - uses DOM APIs
@@ -55,16 +84,6 @@ vi.mock('@codemirror/commands', () => ({
   historyKeymap: [],
 }));
 
-vi.mock('@codemirror/lang-python', async () => {
-  // We still need the real parser for pythonToBlocks - only mock the python() extension
-  const real =
-    await vi.importActual<typeof import('@codemirror/lang-python')>('@codemirror/lang-python');
-  return {
-    ...real,
-    python: vi.fn(() => ({})),
-  };
-});
-
 vi.mock('@codemirror/theme-one-dark', () => ({
   oneDark: {},
 }));
@@ -75,53 +94,77 @@ vi.mock('@codemirror/language', () => ({
 }));
 
 // Mock pyodide runner - CDN-based, no npm package
-vi.mock('../services/pyodideRunner', () => ({
+vi.mock('../../services/python/pyodideRunner', () => ({
   loadPyodide: vi.fn().mockResolvedValue(undefined),
-  runPython: vi.fn().mockResolvedValue({ stdout: 'test output', stderr: '', executionTime: 5 }),
+  runPython: runPythonMock,
   isPyodideLoaded: vi.fn().mockReturnValue(false),
   resetPyodide: vi.fn(),
 }));
 
 import { BlockPyEditor } from '../code-editor/BlockPyEditor';
 
+function makeConfig(overrides?: Parameters<typeof resolveBlockPyConfig>[0]) {
+  return resolveBlockPyConfig(overrides);
+}
+
 describe('BlockPyEditor', () => {
   it('renders without crashing', () => {
-    render(<BlockPyEditor />);
-    // Should render the main container
+    render(<BlockPyEditor config={makeConfig()} />);
     expect(screen.getByRole('main')).toBeInTheDocument();
   });
 
   it('renders the toolbar with run and reset buttons', () => {
-    render(<BlockPyEditor />);
+    render(<BlockPyEditor config={makeConfig()} />);
     expect(screen.getByLabelText('Run Python code')).toBeInTheDocument();
     expect(screen.getByLabelText('Reset editor to initial state')).toBeInTheDocument();
   });
 
   it('renders editor panes', () => {
-    render(<BlockPyEditor />);
+    render(<BlockPyEditor config={makeConfig()} />);
     expect(screen.getByLabelText('Block editor pane')).toBeInTheDocument();
     expect(screen.getByLabelText('Code editor pane')).toBeInTheDocument();
   });
 
   it('renders output panel', () => {
-    render(<BlockPyEditor />);
+    render(<BlockPyEditor config={makeConfig()} />);
     expect(screen.getByLabelText('Console')).toBeInTheDocument();
   });
 
   it('shows placeholder text in output panel initially', () => {
-    render(<BlockPyEditor />);
+    render(<BlockPyEditor config={makeConfig()} />);
     expect(screen.getByText('Run your code to see output here')).toBeInTheDocument();
   });
 
   it('run button is enabled initially', () => {
-    render(<BlockPyEditor />);
+    render(<BlockPyEditor config={makeConfig()} />);
     const runBtn = screen.getByLabelText('Run Python code');
     expect(runBtn).not.toBeDisabled();
   });
 
   it('has correct aria labels for accessibility', () => {
-    render(<BlockPyEditor />);
+    render(<BlockPyEditor config={makeConfig()} />);
     expect(screen.getByRole('main', { name: 'BlockPy dual Python editor' })).toBeInTheDocument();
     expect(screen.getByRole('toolbar', { name: 'Editor controls' })).toBeInTheDocument();
+  });
+
+  it('calls success callback on correct run', async () => {
+    const onRunSuccess = vi.fn();
+    const onRunComplete = vi.fn();
+
+    render(
+      <BlockPyEditor
+        config={makeConfig({
+          callbacks: { onRunSuccess, onRunComplete },
+          runtime: { expectedOutput: 'ok' },
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText('Run Python code'));
+
+    await waitFor(() => {
+      expect(onRunComplete).toHaveBeenCalledTimes(1);
+      expect(onRunSuccess).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -4,14 +4,16 @@ import { CodeMirrorEditor } from './CodeMirrorEditor';
 import { createSyncController } from '../../services/mlt/syncController';
 import { pythonToBlocks } from '../../services/mlt/pythonToBlocks';
 import { loadPyodide, runPython, isPyodideLoaded } from '../../services/python/pyodideRunner';
-import type { SyncState, TranslationError, ExecutionResult } from '../../types';
+import { isCorrectRun } from '../../embed/config';
+import type {
+  SyncState,
+  TranslationError,
+  ExecutionResult,
+  BlockPyResolvedConfig,
+  BlockPyRunContext,
+} from '../../types';
 
-const INITIAL_CODE = `x = 5\nprint(x)\n`;
 const EMPTY_BLOCKS_XML = '<xml xmlns="https://developers.google.com/blockly/xml"></xml>';
-const INITIAL_PARSE_RESULT = pythonToBlocks(INITIAL_CODE);
-const INITIAL_BLOCKS_XML = INITIAL_PARSE_RESULT.success
-  ? (INITIAL_PARSE_RESULT.blocksXml ?? EMPTY_BLOCKS_XML)
-  : EMPTY_BLOCKS_XML;
 const MIN_LEFT_PANE_PERCENT = 20;
 const MAX_LEFT_PANE_PERCENT = 80;
 
@@ -19,16 +21,31 @@ function clampPanePercent(value: number): number {
   return Math.min(MAX_LEFT_PANE_PERCENT, Math.max(MIN_LEFT_PANE_PERCENT, value));
 }
 
-export function BlockPyEditor() {
-  const [code, setCode] = useState(INITIAL_CODE);
-  const [blocksXml, setBlocksXml] = useState<string | undefined>(INITIAL_BLOCKS_XML);
+interface BlockPyEditorProps {
+  config: BlockPyResolvedConfig;
+}
+
+export function BlockPyEditor({ config }: BlockPyEditorProps) {
+  const initialCode =
+    config.initialState.submission.code || config.initialState.assignment.startingCode;
+  const initialParseResult = pythonToBlocks(initialCode);
+  const initialBlocksXml = initialParseResult.success
+    ? (initialParseResult.blocksXml ?? EMPTY_BLOCKS_XML)
+    : EMPTY_BLOCKS_XML;
+
+  const [code, setCode] = useState(initialCode);
+  const [blocksXml, setBlocksXml] = useState<string | undefined>(initialBlocksXml);
+  const [submissionCorrectness, setSubmissionCorrectness] = useState<boolean | null>(
+    config.initialState.submission.correctness,
+  );
+  const [submissionStatus, setSubmissionStatus] = useState(config.initialState.submission.status);
   const [syncState, setSyncState] = useState<SyncState>({
     source: 'external',
     isDirty: false,
-    lastValidBlocksXml: INITIAL_BLOCKS_XML,
-    lastValidPython: INITIAL_CODE,
+    lastValidBlocksXml: initialBlocksXml,
+    lastValidPython: initialCode,
     isParsing: false,
-    parseErrors: INITIAL_PARSE_RESULT.errors,
+    parseErrors: initialParseResult.errors,
   });
   const [output, setOutput] = useState('');
   const [executionError, setExecutionError] = useState<string | null>(null);
@@ -40,6 +57,7 @@ export function BlockPyEditor() {
   const [isDraggingDivider, setIsDraggingDivider] = useState(false);
   const editorPanesRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef(false);
+  const callbacks = config.callbacks;
 
   const syncControllerRef = useRef(
     createSyncController({
@@ -57,6 +75,26 @@ export function BlockPyEditor() {
     const controller = syncControllerRef.current;
     return () => controller.dispose();
   }, []);
+
+  const currentState = {
+    ...config.initialState,
+    submission: {
+      ...config.initialState.submission,
+      code,
+      correctness: submissionCorrectness,
+      status: submissionStatus,
+    },
+  };
+
+  useEffect(() => {
+    callbacks.onReady?.(currentState);
+    // Intentionally mount-only callback.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    callbacks.onStateChange?.(currentState);
+  }, [callbacks, currentState]);
 
   useEffect(() => {
     if (!isDraggingDivider) {
@@ -133,20 +171,40 @@ export function BlockPyEditor() {
     }
   }, []);
 
-  const handleTextChange = useCallback((newCode: string) => {
-    setCode(newCode);
-    syncControllerRef.current.onTextChange(newCode);
-  }, []);
+  const handleTextChange = useCallback(
+    (newCode: string) => {
+      if (config.initialState.display.readOnly) {
+        return;
+      }
+      setCode(newCode);
+      syncControllerRef.current.onTextChange(newCode);
+    },
+    [config.initialState.display.readOnly],
+  );
 
-  const handleBlocksChange = useCallback((newCode: string, newBlocksXml: string) => {
-    syncControllerRef.current.onBlocksChange(newBlocksXml, newCode);
-  }, []);
+  const handleBlocksChange = useCallback(
+    (newCode: string, newBlocksXml: string) => {
+      if (config.initialState.display.readOnly) {
+        return;
+      }
+      syncControllerRef.current.onBlocksChange(newBlocksXml, newCode);
+    },
+    [config.initialState.display.readOnly],
+  );
 
   const handleRun = useCallback(async () => {
     setIsRunning(true);
+    setSubmissionStatus('running');
     setOutput('');
     setExecutionError(null);
     setHasRun(true);
+    callbacks.onRunStart?.({
+      ...currentState,
+      submission: {
+        ...currentState.submission,
+        status: 'running',
+      },
+    });
 
     try {
       if (!isPyodideLoaded()) {
@@ -163,24 +221,55 @@ export function BlockPyEditor() {
       if (result.stderr) {
         setExecutionError((prev) => (prev ? prev + '\n' : '') + result.stderr);
       }
+
+      const runContext: BlockPyRunContext = {
+        result,
+        state: {
+          ...currentState,
+          submission: {
+            ...currentState.submission,
+            status: result.error || result.stderr ? 'error' : 'completed',
+          },
+        },
+        code,
+        parseErrors,
+      };
+
+      const succeeded = isCorrectRun(runContext, config);
+      setSubmissionCorrectness(succeeded);
+      setSubmissionStatus(result.error || result.stderr ? 'error' : 'completed');
+      callbacks.onRunComplete?.(runContext);
+      if (succeeded) {
+        callbacks.onRunSuccess?.(runContext);
+      }
     } catch (e) {
       setExecutionError(e instanceof Error ? e.message : String(e));
+      setSubmissionCorrectness(false);
+      setSubmissionStatus('error');
     } finally {
       setIsRunning(false);
       setIsLoadingPyodide(false);
     }
-  }, [code]);
+  }, [callbacks, code, config, currentState, parseErrors]);
 
   const handleReset = useCallback(() => {
-    setCode(INITIAL_CODE);
+    setCode(initialCode);
     setOutput('');
     setExecutionError(null);
     setHasRun(false);
-    setParseErrors(INITIAL_PARSE_RESULT.errors);
-    setBlocksXml(INITIAL_BLOCKS_XML);
+    setParseErrors(initialParseResult.errors);
+    setBlocksXml(initialBlocksXml);
+    setSubmissionCorrectness(config.initialState.submission.correctness);
+    setSubmissionStatus(config.initialState.submission.status);
     syncControllerRef.current.reset();
-    syncControllerRef.current.onTextChange(INITIAL_CODE);
-  }, []);
+    syncControllerRef.current.onTextChange(initialCode);
+  }, [
+    config.initialState.submission.correctness,
+    config.initialState.submission.status,
+    initialBlocksXml,
+    initialCode,
+    initialParseResult.errors,
+  ]);
 
   const syncSource = syncState.source;
 
@@ -198,14 +287,14 @@ export function BlockPyEditor() {
       <div className="blockpy-header-row">
         <div className="blockpy-description" role="heading" aria-label="Assignment Description">
           <span className="blockpy-name">
-            <strong>BlockPy:</strong> Python Editor
+            <strong>BlockPy:</strong> {config.initialState.assignment.name}
           </span>
-          <div className="blockpy-instructions">
-            Write Python code using blocks or text. Click <strong>Run</strong> to execute.
-          </div>
+          <div className="blockpy-instructions">{config.initialState.assignment.instructions}</div>
         </div>
         <div className="blockpy-quick-menu" role="menubar" aria-label="Quick Menu">
-          No submission required.
+          {config.initialState.runtime.partId
+            ? `Part ${config.initialState.runtime.partId}`
+            : 'No submission required.'}
         </div>
       </div>
 
@@ -311,6 +400,7 @@ export function BlockPyEditor() {
               <BlocklyWorkspace
                 blocksXml={blocksXml}
                 onCodeChange={handleBlocksChange}
+                readOnly={config.initialState.display.readOnly}
                 className="blockly-container"
               />
             </div>
@@ -340,6 +430,7 @@ export function BlockPyEditor() {
               <CodeMirrorEditor
                 value={code}
                 onChange={handleTextChange}
+                readOnly={config.initialState.display.readOnly}
                 className="codemirror-container"
               />
             </div>

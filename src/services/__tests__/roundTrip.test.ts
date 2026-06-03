@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { pythonToBlocks } from '../pythonToBlocks';
-import { PYTHON_BLOCK_TYPES } from '../pythonBlocks';
-import { blockToCode } from '../blockToPython';
+import { pythonToBlocks } from '../mlt/pythonToBlocks';
+import { PYTHON_BLOCK_TYPES } from '../mlt/pythonBlocks';
+import { blockToCode } from '../mlt/blockToPython';
 import type { TranslationError } from '../../types';
 
 // Mock block builder from XML - parses block XML to a simple block structure

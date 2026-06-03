@@ -32,14 +32,14 @@ src/
 
 ### Architectural Boundaries
 
-| Layer | Responsibility |
-|-------|---------------|
-| React UI (`components/`) | Rendering only; delegates logic to services |
-| `syncController.ts` | Source-of-truth for sync state; no React deps |
-| `pythonToBlocks.ts` | Pure function: Python string → Blockly XML |
-| `blockToPython.ts` | Pure function: Blockly workspace → Python string |
-| `pythonBlocks.ts` | Block schema and toolbox definitions |
-| `pyodideRunner.ts` | Pyodide lifecycle; CDN-loaded lazily |
+| Layer                    | Responsibility                                   |
+| ------------------------ | ------------------------------------------------ |
+| React UI (`components/`) | Rendering only; delegates logic to services      |
+| `syncController.ts`      | Source-of-truth for sync state; no React deps    |
+| `pythonToBlocks.ts`      | Pure function: Python string → Blockly XML       |
+| `blockToPython.ts`       | Pure function: Blockly workspace → Python string |
+| `pythonBlocks.ts`        | Block schema and toolbox definitions             |
+| `pyodideRunner.ts`       | Pyodide lifecycle; CDN-loaded lazily             |
 
 ---
 
@@ -53,6 +53,7 @@ User edits text  → (debounced 300ms) → pythonToBlocks → update Blockly wor
 ```
 
 Key properties:
+
 - **Debounced**: Text changes wait 300 ms before triggering a parse, preventing lag during typing.
 - **Source tracking**: `SyncSource = 'blocks' | 'text' | 'external'` prevents circular updates.
 - **Non-destructive fallback**: If text cannot be parsed, the last valid Blockly workspace is preserved.
@@ -64,37 +65,40 @@ Key properties:
 ## Supported Python Subset
 
 ### Fully Supported
-| Construct | Block Type |
-|-----------|-----------|
-| Number literals | `py_number` |
-| String literals | `py_string` |
-| Boolean literals (`True`/`False`) | `py_boolean` |
-| `None` | `py_none` |
-| Variable references | `py_variable` |
-| Assignment (`x = expr`) | `py_assign` |
-| Arithmetic (`+`, `-`, `*`, `/`, `%`, `**`) | `py_add`, etc. |
-| Comparisons (`==`, `!=`, `<`, `<=`, `>`, `>=`) | `py_compare` |
-| Boolean operators (`and`, `or`) | `py_bool_op` |
-| `not` | `py_not` |
-| `if`/`else` | `py_if` |
-| `while` loop | `py_while` |
-| `for` loop | `py_for` |
-| Function definition | `py_func_def` |
-| Function call | `py_func_call` |
-| `return` | `py_return` |
-| List literal | `py_list` |
-| `print(...)` | `py_print` |
-| `import` | `py_import` |
+
+| Construct                                      | Block Type     |
+| ---------------------------------------------- | -------------- |
+| Number literals                                | `py_number`    |
+| String literals                                | `py_string`    |
+| Boolean literals (`True`/`False`)              | `py_boolean`   |
+| `None`                                         | `py_none`      |
+| Variable references                            | `py_variable`  |
+| Assignment (`x = expr`)                        | `py_assign`    |
+| Arithmetic (`+`, `-`, `*`, `/`, `%`, `**`)     | `py_add`, etc. |
+| Comparisons (`==`, `!=`, `<`, `<=`, `>`, `>=`) | `py_compare`   |
+| Boolean operators (`and`, `or`)                | `py_bool_op`   |
+| `not`                                          | `py_not`       |
+| `if`/`else`                                    | `py_if`        |
+| `while` loop                                   | `py_while`     |
+| `for` loop                                     | `py_for`       |
+| Function definition                            | `py_func_def`  |
+| Function call                                  | `py_func_call` |
+| `return`                                       | `py_return`    |
+| List literal                                   | `py_list`      |
+| `print(...)`                                   | `py_print`     |
+| `import`                                       | `py_import`    |
 
 ### Unsupported Syntax Behavior
 
 When the Python-to-blocks parser encounters syntax it cannot convert:
+
 1. **Parse errors** produce a `py_error` block with the error message.
 2. **Unsupported-but-valid syntax** produces a `py_unsupported` block with the raw source.
 3. **The last valid workspace is preserved** — unsupported code does NOT overwrite the workspace.
 4. Errors are reported in the UI's **Parse Issues** panel with location info (line/col).
 
 Every unsupported node emits a structured `UnsupportedSyntaxError` with:
+
 - `nodeType`: the CST node type name
 - `location`: `{ line, col, endLine, endCol }`
 - `sourceExcerpt`: up to 60 chars of the offending code
@@ -104,6 +108,7 @@ Every unsupported node emits a structured `UnsupportedSyntaxError` with:
 ## How to Run Locally
 
 ### Prerequisites
+
 - Node.js 18+
 - npm 9+
 
@@ -116,18 +121,79 @@ npm run dev
 
 Open `http://localhost:5173` in your browser.
 
+---
+
+## Embedding and LMS Mounting
+
+The app can run standalone or be mounted into any host page/LMS container.
+
+### Host API
+
+The browser global `window.BlockPy.mount(node, config?)` mounts the editor into a supplied DOM node.
+
+```html
+<div id="lesson-editor"></div>
+<script>
+  const node = document.getElementById('lesson-editor');
+  const handle = window.BlockPy.mount(node, {
+    user: { id: 'u-1', name: 'Ada', role: 'learner', courseId: 'c-1', groupId: 'g-1' },
+    assignment: {
+      id: 'a-1',
+      name: 'Loops Practice',
+      instructions: 'Write a loop that prints numbers 1 to 5.',
+      points: 10,
+      type: 'coding',
+      tags: ['loops', 'intro-python'],
+      startingCode: 'for i in range(1, 6):\n    print(i)\n',
+    },
+    submission: {
+      id: 'sub-1',
+      endpoint: '/api/submissions/sub-1',
+      ownerId: 'u-1',
+      version: 1,
+    },
+    server: {
+      urls: { api: 'https://lms.example.edu/api' },
+      accessToken: 'Bearer ...',
+    },
+    display: { readOnly: false },
+    runtime: { partId: 'part-1', expectedOutput: '1\n2\n3\n4\n5' },
+    callbacks: {
+      onRunSuccess: ({ state }) => {
+        console.log('Correct run for submission', state.submission.id);
+      },
+    },
+  });
+
+  // Later, when needed:
+  // handle.unmount();
+</script>
+```
+
+### Supported Configuration
+
+- `user`: `id`, `name`, `role`, `courseId`, `groupId`
+- `assignment`: `id`, `name`, `instructions`, `url`, `type`, `points`, `visibilityFlags`, `settings`, `startingCode`, `instructorHooks`, `tags`, `sampleSubmissions`, `extraFiles`
+- `submission`: `id`, `code`, `extraFiles`, `score`, `correctness`, `status`, `ownerId`, `endpoint`, `version`
+- `server`: `urls`, `accessToken`
+- `display`: `readOnly`
+- `runtime`: `partId`, `executionTimeoutMs`, `expectedOutput`, `settings`
+- `callbacks`: `onReady`, `onStateChange`, `onRunStart`, `onRunComplete`, `onRunSuccess`, `isCorrectRun`
+
+All config fields are optional. Missing values fall back to defaults.
+
 ### Available Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start Vite dev server |
-| `npm run build` | TypeScript compile + Vite production build |
-| `npm run preview` | Preview production build |
-| `npm test` | Run tests once (Vitest) |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run lint` | ESLint check |
-| `npm run format` | Prettier format |
-| `npm run typecheck` | TypeScript type check (no emit) |
+| Script               | Description                                |
+| -------------------- | ------------------------------------------ |
+| `npm run dev`        | Start Vite dev server                      |
+| `npm run build`      | TypeScript compile + Vite production build |
+| `npm run preview`    | Preview production build                   |
+| `npm test`           | Run tests once (Vitest)                    |
+| `npm run test:watch` | Run tests in watch mode                    |
+| `npm run lint`       | ESLint check                               |
+| `npm run format`     | Prettier format                            |
+| `npm run typecheck`  | TypeScript type check (no emit)            |
 
 ---
 
@@ -141,14 +207,14 @@ Tests use **Vitest** + **React Testing Library** + **jsdom**.
 
 ### Test Coverage
 
-| Test File | What It Tests |
-|-----------|--------------|
-| `blockToPython.test.ts` | Block structures → Python source code |
-| `pythonToBlocks.test.ts` | Python source → Blockly XML (all supported constructs) |
-| `roundTrip.test.ts` | Round-trip stability: blocks→Python→blocks, Python→blocks→Python |
-| `pyodideRunner.test.ts` | Pyodide loader/runner API (mocked) |
-| `syncController.test.ts` | Sync logic: debounce, source tracking, no-infinite-loops |
-| `BlockPyEditor.test.tsx` | React rendering smoke tests |
+| Test File                | What It Tests                                                    |
+| ------------------------ | ---------------------------------------------------------------- |
+| `blockToPython.test.ts`  | Block structures → Python source code                            |
+| `pythonToBlocks.test.ts` | Python source → Blockly XML (all supported constructs)           |
+| `roundTrip.test.ts`      | Round-trip stability: blocks→Python→blocks, Python→blocks→Python |
+| `pyodideRunner.test.ts`  | Pyodide loader/runner API (mocked)                               |
+| `syncController.test.ts` | Sync logic: debounce, source tracking, no-infinite-loops         |
+| `BlockPyEditor.test.tsx` | React rendering smoke tests                                      |
 
 Property-based tests (via `fast-check`) cover round-trip stability for numeric and string literals.
 
@@ -202,4 +268,3 @@ Golden-file tests cover representative Python snippets (assignments, if/else, fo
 4. **Sync debounce**: 300ms debounce on text changes balances responsiveness against parse cost. The last valid block workspace is always preserved on parse failure.
 
 5. **Block schema versioning**: The `PYTHON_BLOCK_TYPES` constant serves as the block schema. Future migrations should use the `py_error`/`py_unsupported` fallback blocks for unknown types.
-

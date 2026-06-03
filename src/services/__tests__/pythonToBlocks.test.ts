@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pythonToBlocks } from '../pythonToBlocks';
+import { pythonToBlocks } from '../mlt/pythonToBlocks';
 
 describe('pythonToBlocks', () => {
   it('returns empty XML for empty source', () => {

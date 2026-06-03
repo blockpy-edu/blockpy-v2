@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { blockToCode, statementToCode, workspaceToPython } from '../blockToPython';
-import { PYTHON_BLOCK_TYPES } from '../pythonBlocks';
+import { blockToCode, statementToCode, workspaceToPython } from '../mlt/blockToPython';
+import { PYTHON_BLOCK_TYPES } from '../mlt/pythonBlocks';
 import type { TranslationError } from '../../types';
 
 interface MockBlock {
