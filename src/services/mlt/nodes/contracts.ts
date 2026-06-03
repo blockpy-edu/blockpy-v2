@@ -16,8 +16,6 @@ export interface BlockToPythonContext {
 }
 
 export interface PythonToBlocksContext {
-  source: string;
-  errors: TranslationError[];
   nodeText: (node: SyntaxNode, source: string) => string;
   allChildren: (node: SyntaxNode) => SyntaxNode[];
   childByType: (node: SyntaxNode, ...types: string[]) => SyntaxNode | null;
@@ -46,11 +44,6 @@ export interface PythonToBlocksContext {
     endLine?: number;
     endCol?: number;
   };
-  comprehensionToStructuredBlock: (
-    node: SyntaxNode,
-    source: string,
-    errors: TranslationError[],
-  ) => string;
 }
 
 export interface NodeHandlers {
