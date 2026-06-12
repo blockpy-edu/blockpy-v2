@@ -1,4 +1,5 @@
-import { BlockPyEditor } from './components/code-editor/BlockPyEditor';
+import { WorkspaceProvider } from './workspace/WorkspaceProvider';
+import { WorkspaceShell } from './workspace/WorkspaceShell';
 import './App.css';
 import type { BlockPyResolvedConfig } from './types';
 
@@ -9,9 +10,9 @@ interface AppProps {
 function App({ config }: AppProps) {
   return (
     <div className="app">
-      <main className="app-main" role="main">
-        <BlockPyEditor config={config} />
-      </main>
+      <WorkspaceProvider config={config}>
+        <WorkspaceShell />
+      </WorkspaceProvider>
     </div>
   );
 }

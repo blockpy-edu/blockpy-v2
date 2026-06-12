@@ -127,6 +127,36 @@ export interface BlockPyServerConfig {
   accessToken: string;
 }
 
+/**
+ * One ordered task inside an inline activity mount
+ * (docs/architecture/02 §2): an AssignmentGroup membership plus the
+ * assignment fields the task needs.
+ */
+export interface BlockPyActivityTaskConfig {
+  id: string;
+  name: string;
+  /** Assignment type; defaults to 'blockpy' (a code task). */
+  type?: string;
+  instructions?: string;
+  startingCode?: string;
+  onRun?: string;
+  points?: number;
+  /** Membership policy, e.g. { require_previous: true }. */
+  policy?: Record<string, unknown>;
+  submission?: {
+    id?: string;
+    code?: string;
+  };
+}
+
+export interface BlockPyActivityConfig {
+  id: string;
+  name: string;
+  /** AssignmentGroup category ('homework', 'exam', ...); defaults to 'none'. */
+  category?: string;
+  tasks: BlockPyActivityTaskConfig[];
+}
+
 export interface BlockPyDisplayConfig {
   readOnly: boolean;
 }
@@ -145,6 +175,8 @@ export interface BlockPyInitialState {
   display: BlockPyDisplayConfig;
   runtime: BlockPyRuntimeConfig;
   server: BlockPyServerConfig;
+  /** Multi-task activity; when present it supersedes the single assignment. */
+  activity: BlockPyActivityConfig | null;
 }
 
 export interface BlockPyRunContext {
@@ -163,7 +195,8 @@ export interface BlockPyLifecycleCallbacks {
   isCorrectRun?: (context: BlockPyRunContext) => boolean;
 }
 
-export interface BlockPyMountOptions extends DeepPartial<BlockPyInitialState> {
+export interface BlockPyMountOptions extends DeepPartial<Omit<BlockPyInitialState, 'activity'>> {
+  activity?: BlockPyActivityConfig | null;
   callbacks?: BlockPyLifecycleCallbacks;
 }
 

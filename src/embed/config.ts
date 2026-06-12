@@ -57,6 +57,7 @@ const DEFAULT_STATE: BlockPyInitialState = {
     urls: {},
     accessToken: '',
   },
+  activity: null,
 };
 
 function sanitizeStringRecord(
@@ -100,6 +101,7 @@ function cloneDefaultState(): BlockPyInitialState {
       ...DEFAULT_STATE.server,
       urls: { ...DEFAULT_STATE.server.urls },
     },
+    activity: null,
   };
 }
 
@@ -174,6 +176,18 @@ export function resolveBlockPyConfig(options: BlockPyMountOptions = {}): BlockPy
       ...sanitizeStringRecord(options.server?.urls),
     },
   };
+
+  if (options.activity && options.activity.tasks.length > 0) {
+    initialState.activity = {
+      id: options.activity.id,
+      name: options.activity.name,
+      category: options.activity.category,
+      tasks: options.activity.tasks.map((task, index) => ({
+        ...task,
+        id: task.id || String(index + 1),
+      })),
+    };
+  }
 
   if (!initialState.submission.code) {
     initialState.submission.code = initialState.assignment.startingCode;
