@@ -71,7 +71,12 @@ export function MultipleAnswersView({
   );
 }
 
-export function TrueFalseView({ question, value, disabled, onChange }: ChoiceProps<TrueFalseQuestion>) {
+export function TrueFalseView({
+  question,
+  value,
+  disabled,
+  onChange,
+}: ChoiceProps<TrueFalseQuestion>) {
   const groupName = useId();
   const selected = typeof value === 'string' ? value : '';
   void question;

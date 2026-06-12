@@ -22,8 +22,7 @@ function seedFromId(id: string): number {
 }
 
 export function MatchingQuestionView({ question, value, disabled, onChange }: MatchingProps) {
-  const answers =
-    typeof value === 'object' && value !== null && !Array.isArray(value) ? value : {};
+  const answers = typeof value === 'object' && value !== null && !Array.isArray(value) ? value : {};
   const options = shuffle(question.answers, seedFromId(question.id));
   return (
     <ul className={styles.matchList}>

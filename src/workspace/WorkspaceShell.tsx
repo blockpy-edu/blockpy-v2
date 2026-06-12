@@ -36,7 +36,9 @@ export function WorkspaceShell() {
   const { runCoordinator } = useWorkspace();
   const runStatus = useRunState((state) => state.status);
   // Only code tasks are runnable (docs/architecture/02 §2.2).
-  const runnable = useActivityState((state) => (focusedTask(state)?.kind.type ?? 'code') === 'code');
+  const runnable = useActivityState(
+    (state) => (focusedTask(state)?.kind.type ?? 'code') === 'code',
+  );
 
   const isRunning = runStatus === 'running' || runStatus === 'loading';
 

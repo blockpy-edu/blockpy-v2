@@ -81,7 +81,9 @@ export function FileUploadView({ value, disabled, onChange }: EntryProps) {
         disabled={disabled}
         onChange={(event) => void handleFile(event.target.files?.[0])}
       />
-      {current?.filename ? <span className={styles.fileName}>Uploaded: {current.filename}</span> : null}
+      {current?.filename ? (
+        <span className={styles.fileName}>Uploaded: {current.filename}</span>
+      ) : null}
     </p>
   );
 }

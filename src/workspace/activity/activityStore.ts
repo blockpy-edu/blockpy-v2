@@ -43,8 +43,7 @@ export function createActivityStore(
       return verdict;
     },
 
-    setStatus: (id, status) =>
-      set((state) => ({ statuses: { ...state.statuses, [id]: status } })),
+    setStatus: (id, status) => set((state) => ({ statuses: { ...state.statuses, [id]: status } })),
   }));
 }
 

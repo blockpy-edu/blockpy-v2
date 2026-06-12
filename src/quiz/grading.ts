@@ -52,9 +52,7 @@ function numberMatches(answer: unknown, key: unknown, tolerance: number): boolea
 function setMatches(answer: unknown, key: unknown): boolean {
   const given = Array.isArray(answer) ? answer.map(String) : [];
   const expected = Array.isArray(key) ? key.map(String) : [];
-  return (
-    given.length === expected.length && expected.every((item) => given.includes(item))
-  );
+  return given.length === expected.length && expected.every((item) => given.includes(item));
 }
 
 /** Per-subkey comparison for matching/dropdown/blank questions. */

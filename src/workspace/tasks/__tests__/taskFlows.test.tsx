@@ -96,7 +96,9 @@ describe('QuizTask', () => {
     const user = userEvent.setup();
     renderActivity(QUIZ_ACTIVITY);
 
-    expect(taskPanel().getByText('This quiz has 3 questions. You have 2 attempts.')).toBeInTheDocument();
+    expect(
+      taskPanel().getByText('This quiz has 3 questions. You have 2 attempts.'),
+    ).toBeInTheDocument();
     await user.click(taskPanel().getByRole('button', { name: 'Start quiz' }));
 
     await user.click(screen.getByRole('radio', { name: 'Repeats a block' }));

@@ -128,10 +128,7 @@ export function taskStatusFromSubmission(
   if (submission.correct || submission.gradingStatus === 'FullyGraded') {
     return 'graded';
   }
-  if (
-    submission.submissionStatus === 'Submitted' ||
-    submission.submissionStatus === 'Completed'
-  ) {
+  if (submission.submissionStatus === 'Submitted' || submission.submissionStatus === 'Completed') {
     return 'complete';
   }
   if ((submission.code.trim() && submission.code !== startingCode) || submission.score > 0) {

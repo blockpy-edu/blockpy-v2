@@ -31,9 +31,7 @@ function TaskBody({ task }: { task: ActivityTask }) {
       return <TextbookTask task={task} />;
     case 'unsupported':
       return (
-        <p className={styles.unsupported}>
-          Tasks of type “{task.kind.rawType}” are not supported.
-        </p>
+        <p className={styles.unsupported}>Tasks of type “{task.kind.rawType}” are not supported.</p>
       );
   }
 }

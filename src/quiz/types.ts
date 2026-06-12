@@ -172,7 +172,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function stringList(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
 }
 
 function parseQuestion(id: string, raw: unknown): QuizQuestion {
@@ -186,7 +188,11 @@ function parseQuestion(id: string, raw: unknown): QuizQuestion {
   switch (type as QuizQuestion['type']) {
     case 'multiple_choice_question':
     case 'multiple_answers_question':
-      return { ...base, type: type as 'multiple_choice_question', answers: stringList(record.answers) };
+      return {
+        ...base,
+        type: type as 'multiple_choice_question',
+        answers: stringList(record.answers),
+      };
     case 'matching_question':
       return {
         ...base,
@@ -228,8 +234,11 @@ function parseSettings(raw: unknown): QuizSettings {
   const poolRandomness = record.poolRandomness;
   return {
     attemptLimit:
-      typeof record.attemptLimit === 'number' ? record.attemptLimit : DEFAULT_QUIZ_SETTINGS.attemptLimit,
-    coolDown: typeof record.coolDown === 'number' ? record.coolDown : DEFAULT_QUIZ_SETTINGS.coolDown,
+      typeof record.attemptLimit === 'number'
+        ? record.attemptLimit
+        : DEFAULT_QUIZ_SETTINGS.attemptLimit,
+    coolDown:
+      typeof record.coolDown === 'number' ? record.coolDown : DEFAULT_QUIZ_SETTINGS.coolDown,
     feedbackType:
       feedbackType === 'IMMEDIATE' || feedbackType === 'NONE' || feedbackType === 'SUMMARY'
         ? feedbackType
@@ -371,6 +380,8 @@ export function parseQuizFeedbackMap(raw: unknown): Record<string, QuizFeedback>
   return feedback;
 }
 
-export function isQuestionType(type: string): type is Exclude<QuizQuestion['type'], 'unknown_question'> {
+export function isQuestionType(
+  type: string,
+): type is Exclude<QuizQuestion['type'], 'unknown_question'> {
   return (QUESTION_TYPES as readonly string[]).includes(type);
 }

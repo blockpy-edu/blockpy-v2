@@ -42,7 +42,9 @@ export function QuizTask({ task }: QuizTaskProps) {
   if (!instructions) {
     return (
       <div>
-        <p className={styles.note}>This quiz could not be loaded; the raw content is shown below.</p>
+        <p className={styles.note}>
+          This quiz could not be loaded; the raw content is shown below.
+        </p>
         <pre className={styles.raw}>{rawInstructions}</pre>
       </div>
     );

@@ -28,9 +28,7 @@ describe('tokenizeBlanks', () => {
   });
 
   it('keeps an unclosed bracket as literal text', () => {
-    expect(tokenizeBlanks('broken [marker')).toEqual([
-      { kind: 'text', text: 'broken [marker' },
-    ]);
+    expect(tokenizeBlanks('broken [marker')).toEqual([{ kind: 'text', text: 'broken [marker' }]);
   });
 
   it('keeps empty or whitespace-only brackets as literal text', () => {

@@ -81,9 +81,7 @@ describe('parseQuizSubmission', () => {
   });
 
   it('drops answers of unexpected shapes', () => {
-    const parsed = parseQuizSubmission(
-      JSON.stringify({ studentAnswers: { ok: 'fine', bad: 42 } }),
-    );
+    const parsed = parseQuizSubmission(JSON.stringify({ studentAnswers: { ok: 'fine', bad: 42 } }));
     expect(parsed.studentAnswers).toEqual({ ok: 'fine' });
   });
 });

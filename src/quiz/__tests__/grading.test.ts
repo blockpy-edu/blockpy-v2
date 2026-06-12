@@ -33,7 +33,11 @@ describe('gradeQuiz', () => {
       multi: { type: 'multiple_answers_question', body: '', points: 1, answers: ['x', 'y', 'z'] },
       tf: { type: 'true_false_question', body: '', points: 1 },
       short: { type: 'short_answer_question', body: '', points: 1 },
-      blanks: { type: 'fill_in_multiple_blanks_question', body: '[first] then [second]', points: 1 },
+      blanks: {
+        type: 'fill_in_multiple_blanks_question',
+        body: '[first] then [second]',
+        points: 1,
+      },
       drops: {
         type: 'multiple_dropdowns_question',
         body: 'pick [color]',

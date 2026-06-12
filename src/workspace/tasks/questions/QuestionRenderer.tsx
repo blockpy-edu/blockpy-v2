@@ -25,18 +25,34 @@ function QuestionControl({ question, value, disabled, onChange }: QuestionRender
       return <McqView question={question} value={value} disabled={disabled} onChange={onChange} />;
     case 'multiple_answers_question':
       return (
-        <MultipleAnswersView question={question} value={value} disabled={disabled} onChange={onChange} />
+        <MultipleAnswersView
+          question={question}
+          value={value}
+          disabled={disabled}
+          onChange={onChange}
+        />
       );
     case 'true_false_question':
-      return <TrueFalseView question={question} value={value} disabled={disabled} onChange={onChange} />;
+      return (
+        <TrueFalseView question={question} value={value} disabled={disabled} onChange={onChange} />
+      );
     case 'matching_question':
       return (
-        <MatchingQuestionView question={question} value={value} disabled={disabled} onChange={onChange} />
+        <MatchingQuestionView
+          question={question}
+          value={value}
+          disabled={disabled}
+          onChange={onChange}
+        />
       );
     case 'multiple_dropdowns_question':
-      return <DropdownsView question={question} value={value} disabled={disabled} onChange={onChange} />;
+      return (
+        <DropdownsView question={question} value={value} disabled={disabled} onChange={onChange} />
+      );
     case 'fill_in_multiple_blanks_question':
-      return <BlanksView question={question} value={value} disabled={disabled} onChange={onChange} />;
+      return (
+        <BlanksView question={question} value={value} disabled={disabled} onChange={onChange} />
+      );
     case 'short_answer_question':
       return <ShortAnswerView value={value} disabled={disabled} onChange={onChange} />;
     case 'numerical_question':

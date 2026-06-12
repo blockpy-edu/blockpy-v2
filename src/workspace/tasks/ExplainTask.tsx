@@ -6,10 +6,7 @@ import { useMemo, useState } from 'react';
 import { updateSubmissionStatus } from '../../api/endpoints/submissions';
 import { useApi } from '../../api/useApi';
 import { CodeMirrorEditor } from '../../components/code-editor/CodeMirrorEditor';
-import {
-  parseExplainSubmission,
-  serializeExplainSubmission,
-} from '../../domain/explain';
+import { parseExplainSubmission, serializeExplainSubmission } from '../../domain/explain';
 import type { ExplainSubmission } from '../../domain/explain';
 import { MAIN_STUDENT_FILE, STARTING_CODE_FILE, readFile } from '../../vfs/vfs';
 import { useActivityState, useVfsState, useWorkspace } from '../useWorkspace';
@@ -46,7 +43,13 @@ export function ExplainTask({ task }: ExplainTaskProps) {
   const handleAdd = () => {
     const first = Number.parseInt(firstLine, 10);
     const last = Number.parseInt(lastLine, 10);
-    if (Number.isNaN(first) || Number.isNaN(last) || first < 1 || last > lineCount || first > last) {
+    if (
+      Number.isNaN(first) ||
+      Number.isNaN(last) ||
+      first < 1 ||
+      last > lineCount ||
+      first > last
+    ) {
       setRangeError(`Enter a line range between 1 and ${lineCount}.`);
       return;
     }
@@ -54,7 +57,12 @@ export function ExplainTask({ task }: ExplainTaskProps) {
     write({
       annotations: [
         ...submission.annotations,
-        { id: `${Date.now()}-${submission.annotations.length}`, firstLine: first, lastLine: last, explanation: '' },
+        {
+          id: `${Date.now()}-${submission.annotations.length}`,
+          firstLine: first,
+          lastLine: last,
+          explanation: '',
+        },
       ],
     });
   };

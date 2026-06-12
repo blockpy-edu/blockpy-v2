@@ -6,7 +6,10 @@ import type { QuizSettings, QuizSubmission } from './types';
 
 export type AttemptVerdict = { allowed: true } | { allowed: false; reason: string };
 
-export function canStartAttempt(settings: QuizSettings, submission: QuizSubmission): AttemptVerdict {
+export function canStartAttempt(
+  settings: QuizSettings,
+  submission: QuizSubmission,
+): AttemptVerdict {
   const { attemptLimit } = settings;
   const allowedAttempts = attemptLimit < 0 ? Infinity : attemptLimit + submission.attempt.mulligans;
   if (submission.attempt.count >= allowedAttempts) {

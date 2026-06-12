@@ -87,7 +87,8 @@ function demoOptions(): BlockPyMountOptions | undefined {
           name: 'Code: print 5',
           instructions: 'Use what you learned: **print the number 5**.',
           startingCode: '',
-          onRun: 'if "5" in student.output:\n    set_success()\nelse:\n    gently("Print the number 5.")\n',
+          onRun:
+            'if "5" in student.output:\n    set_success()\nelse:\n    gently("Print the number 5.")\n',
           policy: { require_previous: true },
         },
         {
