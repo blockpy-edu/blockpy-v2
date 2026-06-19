@@ -3,6 +3,9 @@ import { pythonToBlocks } from '../mlt/pythonToBlocks';
 import { PYTHON_BLOCK_TYPES } from '../mlt/pythonBlocks';
 import { blockToCode } from '../mlt/blockToPython';
 import type { TranslationError } from '../../types';
+import type { BlocklyBlock } from '../mlt/nodes/blocklyTypes';
+
+const asBlock = (b: object | null): BlocklyBlock => b as unknown as BlocklyBlock;
 
 // Mock block builder from XML - parses block XML to a simple block structure
 // for lightweight round-trip tests without Blockly runtime
@@ -69,76 +72,76 @@ describe('round-trip: Python → Blocks XML', () => {
 describe('blockToCode round-trip', () => {
   it('NUMBER block produces its value', () => {
     const errors: TranslationError[] = [];
-    const block = {
+    const block = asBlock({
       type: PYTHON_BLOCK_TYPES.NUMBER,
       getFieldValue: () => '99',
       getInputTargetBlock: () => null,
       getNextBlock: () => null,
-    };
+    });
     expect(blockToCode(block, errors)).toBe('99');
   });
 
   it('ASSIGN block with STRING value produces assignment', () => {
     const errors: TranslationError[] = [];
-    const strBlock = {
+    const strBlock = asBlock({
       type: PYTHON_BLOCK_TYPES.STRING,
       getFieldValue: () => 'world',
       getInputTargetBlock: () => null,
       getNextBlock: () => null,
-    };
-    const block = {
+    });
+    const block = asBlock({
       type: PYTHON_BLOCK_TYPES.ASSIGN,
       getFieldValue: (n: string) => (n === 'VAR' ? 'msg' : ''),
       getInputTargetBlock: (n: string) => (n === 'VALUE' ? strBlock : null),
       getNextBlock: () => null,
-    };
+    });
     expect(blockToCode(block, errors)).toBe('msg = "world"');
   });
 
   it('nested arithmetic: (1 + 2) * 3', () => {
     const errors: TranslationError[] = [];
-    const n1 = {
+    const n1 = asBlock({
       type: PYTHON_BLOCK_TYPES.NUMBER,
       getFieldValue: () => '1',
       getInputTargetBlock: () => null,
       getNextBlock: () => null,
-    };
-    const n2 = {
+    });
+    const n2 = asBlock({
       type: PYTHON_BLOCK_TYPES.NUMBER,
       getFieldValue: () => '2',
       getInputTargetBlock: () => null,
       getNextBlock: () => null,
-    };
-    const n3 = {
+    });
+    const n3 = asBlock({
       type: PYTHON_BLOCK_TYPES.NUMBER,
       getFieldValue: () => '3',
       getInputTargetBlock: () => null,
       getNextBlock: () => null,
-    };
-    const addBlock = {
+    });
+    const addBlock = asBlock({
       type: PYTHON_BLOCK_TYPES.ADD,
       getFieldValue: () => '',
       getInputTargetBlock: (n: string) => (n === 'LEFT' ? n1 : n === 'RIGHT' ? n2 : null),
       getNextBlock: () => null,
-    };
-    const mulBlock = {
+    });
+    const mulBlock = asBlock({
       type: PYTHON_BLOCK_TYPES.MULTIPLY,
       getFieldValue: () => '',
       getInputTargetBlock: (n: string) => (n === 'LEFT' ? addBlock : n === 'RIGHT' ? n3 : null),
       getNextBlock: () => null,
-    };
+    });
     expect(blockToCode(mulBlock, errors)).toBe('((1 + 2) * 3)');
     expect(errors).toHaveLength(0);
   });
 
   it('DICT block preserves dictionary source', () => {
     const errors: TranslationError[] = [];
-    const block = {
+    const block = asBlock({
       type: PYTHON_BLOCK_TYPES.DICT,
       getFieldValue: (n: string) => (n === 'CODE' ? '{"a": 1}' : ''),
       getInputTargetBlock: () => null,
       getNextBlock: () => null,
-    };
+    });
     expect(blockToCode(block, errors)).toBe('{"a": 1}');
     expect(errors).toHaveLength(0);
   });
