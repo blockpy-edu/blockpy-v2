@@ -5,7 +5,7 @@ import { blockToCode } from '../mlt/blockToPython';
 import type { TranslationError } from '../../types';
 import type { BlocklyBlock } from '../mlt/nodes/blocklyTypes';
 
-const asBlock = (b: object | null): BlocklyBlock => b as unknown as BlocklyBlock;
+const asMockBlock = (b: object | null): BlocklyBlock => b as unknown as BlocklyBlock;
 
 // Mock block builder from XML - parses block XML to a simple block structure
 // for lightweight round-trip tests without Blockly runtime
@@ -72,7 +72,7 @@ describe('round-trip: Python → Blocks XML', () => {
 describe('blockToCode round-trip', () => {
   it('NUMBER block produces its value', () => {
     const errors: TranslationError[] = [];
-    const block = asBlock({
+    const block = asMockBlock({
       type: PYTHON_BLOCK_TYPES.NUMBER,
       getFieldValue: () => '99',
       getInputTargetBlock: () => null,
@@ -83,13 +83,13 @@ describe('blockToCode round-trip', () => {
 
   it('ASSIGN block with STRING value produces assignment', () => {
     const errors: TranslationError[] = [];
-    const strBlock = asBlock({
+    const strBlock = asMockBlock({
       type: PYTHON_BLOCK_TYPES.STRING,
       getFieldValue: () => 'world',
       getInputTargetBlock: () => null,
       getNextBlock: () => null,
     });
-    const block = asBlock({
+    const block = asMockBlock({
       type: PYTHON_BLOCK_TYPES.ASSIGN,
       getFieldValue: (n: string) => (n === 'VAR' ? 'msg' : ''),
       getInputTargetBlock: (n: string) => (n === 'VALUE' ? strBlock : null),
@@ -100,31 +100,31 @@ describe('blockToCode round-trip', () => {
 
   it('nested arithmetic: (1 + 2) * 3', () => {
     const errors: TranslationError[] = [];
-    const n1 = asBlock({
+    const n1 = asMockBlock({
       type: PYTHON_BLOCK_TYPES.NUMBER,
       getFieldValue: () => '1',
       getInputTargetBlock: () => null,
       getNextBlock: () => null,
     });
-    const n2 = asBlock({
+    const n2 = asMockBlock({
       type: PYTHON_BLOCK_TYPES.NUMBER,
       getFieldValue: () => '2',
       getInputTargetBlock: () => null,
       getNextBlock: () => null,
     });
-    const n3 = asBlock({
+    const n3 = asMockBlock({
       type: PYTHON_BLOCK_TYPES.NUMBER,
       getFieldValue: () => '3',
       getInputTargetBlock: () => null,
       getNextBlock: () => null,
     });
-    const addBlock = asBlock({
+    const addBlock = asMockBlock({
       type: PYTHON_BLOCK_TYPES.ADD,
       getFieldValue: () => '',
       getInputTargetBlock: (n: string) => (n === 'LEFT' ? n1 : n === 'RIGHT' ? n2 : null),
       getNextBlock: () => null,
     });
-    const mulBlock = asBlock({
+    const mulBlock = asMockBlock({
       type: PYTHON_BLOCK_TYPES.MULTIPLY,
       getFieldValue: () => '',
       getInputTargetBlock: (n: string) => (n === 'LEFT' ? addBlock : n === 'RIGHT' ? n3 : null),
@@ -136,7 +136,7 @@ describe('blockToCode round-trip', () => {
 
   it('DICT block preserves dictionary source', () => {
     const errors: TranslationError[] = [];
-    const block = asBlock({
+    const block = asMockBlock({
       type: PYTHON_BLOCK_TYPES.DICT,
       getFieldValue: (n: string) => (n === 'CODE' ? '{"a": 1}' : ''),
       getInputTargetBlock: () => null,

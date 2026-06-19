@@ -21,8 +21,8 @@ function makeBlock(
   const block = {
     type,
     getFieldValue: (name: string) => fields[name] ?? '',
-    getInputTargetBlock: (name: string) => inputs[name] as unknown as BlocklyBlock,
-    getNextBlock: () => next as unknown as BlocklyBlock,
+    getInputTargetBlock: (name: string) => (inputs[name] ?? null) as unknown as BlocklyBlock | null,
+    getNextBlock: () => next as unknown as BlocklyBlock | null,
   };
   return block as unknown as BlocklyBlock;
 }
