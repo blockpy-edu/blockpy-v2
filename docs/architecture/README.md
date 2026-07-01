@@ -18,6 +18,9 @@ integrated workspace, backed by the existing
 | [06-assessment-quiz-reading-textbook.md](06-assessment-quiz-reading-textbook.md) | Quiz schema and runner, reading tracking, textbook navigation, explanation tasks              |
 | [07-testing-migration-security.md](07-testing-migration-security.md)             | Test strategy, legacy payload migration, sanitization and isolation                           |
 | [08-implementation-slices.md](08-implementation-slices.md)                       | Ordered delivery plan with epic/story traceability                                            |
+| [09-architecture-diagram.md](09-architecture-diagram.md)                         | One-page visual map of runtime layers, module ownership, and integration paths                |
+| [10-developer-onboarding-by-folder.md](10-developer-onboarding-by-folder.md)     | Folder-by-folder onboarding guide for contributors                                            |
+| [11-runtime-call-flows.md](11-runtime-call-flows.md)                             | Mount, task focus, run, and save call flows across the app                                    |
 
 ## Core thesis
 
@@ -85,3 +88,12 @@ flowchart TB
   — superseded by the worker-based engine but reused for its Pyodide bootstrap logic.
 - [src/embed/config.ts](../../src/embed/config.ts) — grows into the mount/config
   layer described in Story 1.1.
+
+## Added overview docs
+
+- [09-architecture-diagram.md](09-architecture-diagram.md) — visual system summary
+  for quick orientation.
+- [10-developer-onboarding-by-folder.md](10-developer-onboarding-by-folder.md) —
+  practical guide to where features live and where to edit them.
+- [11-runtime-call-flows.md](11-runtime-call-flows.md) — request/response and
+  state-flow walkthroughs from mount to run to save.

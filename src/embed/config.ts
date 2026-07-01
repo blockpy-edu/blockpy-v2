@@ -1,3 +1,7 @@
+/**
+ * This module is responsible for resolving and sanitizing the BlockPy configuration options.
+ */
+
 import type {
   BlockPyInitialState,
   BlockPyMountOptions,
