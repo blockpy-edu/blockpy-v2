@@ -39,12 +39,30 @@ export function useLayoutState<T>(selector: (state: LayoutState) => T): T {
 
 export function useLayoutActions(): Pick<
     LayoutState,
-    "setPreset" | "setRegionSizes" | "toggleCollapsed" | "setFullscreen" | "resetLayout"
+    | "setPreset"
+    | "setRegionSizes"
+    | "toggleCollapsed"
+    | "setFullscreen"
+    | "resetLayout"
+    | "toggleShowHeaders"
 > {
     const { layoutStore } = useWorkspace();
-    const { setPreset, setRegionSizes, toggleCollapsed, setFullscreen, resetLayout } =
-        layoutStore.getState();
-    return { setPreset, setRegionSizes, toggleCollapsed, setFullscreen, resetLayout };
+    const {
+        setPreset,
+        setRegionSizes,
+        toggleCollapsed,
+        setFullscreen,
+        resetLayout,
+        toggleShowHeaders,
+    } = layoutStore.getState();
+    return {
+        setPreset,
+        setRegionSizes,
+        toggleCollapsed,
+        setFullscreen,
+        resetLayout,
+        toggleShowHeaders,
+    };
 }
 
 export function useVfsState<T>(selector: (state: VfsState) => T): T {

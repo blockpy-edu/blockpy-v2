@@ -203,6 +203,12 @@ export function resolveBlockPyConfig(options: BlockPyMountOptions = {}): BlockPy
     };
 }
 
+/**
+ * TODO: Suspicious of whatever this is.
+ * @param context
+ * @param config
+ * @returns
+ */
 export function isCorrectRun(context: BlockPyRunContext, config: BlockPyResolvedConfig): boolean {
     const callbackOutcome = config.callbacks.isCorrectRun?.(context);
     if (typeof callbackOutcome === "boolean") {

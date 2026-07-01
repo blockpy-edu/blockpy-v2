@@ -30,7 +30,8 @@ function renderPanel(panelId: PanelId) {
 export function WorkspaceShell() {
     const presetSelectId = useId();
     const presetId = useLayoutState((state) => state.presetId);
-    const { setPreset, resetLayout } = useLayoutActions();
+    const showHeaders = useLayoutState((state) => state.showHeaders);
+    const { setPreset, resetLayout, toggleShowHeaders } = useLayoutActions();
     const { saving, error, flushNow } = useAutoSave();
     const hasDirty = useVfsState((state) => Object.keys(state.dirty).length > 0);
     const { runCoordinator } = useWorkspace();
@@ -99,6 +100,9 @@ export function WorkspaceShell() {
                 </div>
                 <button type="button" className={styles.toolbarButton} onClick={resetLayout}>
                     Reset layout
+                </button>
+                <button type="button" className={styles.toolbarButton} onClick={toggleShowHeaders}>
+                    {showHeaders ? "Hide Headers" : "Show Headers"}
                 </button>
             </header>
             <ActivityRail flushNow={flushNow} />

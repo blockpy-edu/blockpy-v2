@@ -9,10 +9,12 @@ export interface LayoutState {
     /** Manual size overrides, keyed by region path (e.g. "root.1"). */
     sizes: Record<string, number[]>;
     collapsed: Partial<Record<PanelId, boolean>>;
+    showHeaders: boolean;
     fullscreenPanelId: PanelId | null;
     setPreset: (id: LayoutPresetId, options?: { pin?: boolean }) => void;
     setRegionSizes: (regionPath: string, sizes: number[]) => void;
     toggleCollapsed: (panelId: PanelId) => void;
+    toggleShowHeaders: () => void;
     setFullscreen: (panelId: PanelId | null) => void;
     resetLayout: () => void;
 }
@@ -60,6 +62,7 @@ export function createLayoutStore(storageKey: string): LayoutStore {
         presetPinned: persisted?.presetPinned ?? false,
         sizes: persisted?.sizes ?? {},
         collapsed: persisted?.collapsed ?? {},
+        showHeaders: true,
         fullscreenPanelId: null,
         setPreset: (id, options) =>
             set((state) => ({
@@ -75,6 +78,7 @@ export function createLayoutStore(storageKey: string): LayoutStore {
             set((state) => ({
                 collapsed: { ...state.collapsed, [panelId]: !state.collapsed[panelId] },
             })),
+        toggleShowHeaders: () => set((state) => ({ showHeaders: !state.showHeaders })),
         setFullscreen: (panelId) => set({ fullscreenPanelId: panelId }),
         resetLayout: () =>
             set({
