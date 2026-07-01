@@ -32,6 +32,7 @@ export interface SplitNode {
 export type RegionNode = PanelNode | SplitNode;
 
 export type LayoutPresetId =
+    | "new"
     | "classic"
     | "reading"
     | "quiz"

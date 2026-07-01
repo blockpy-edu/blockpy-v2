@@ -13,15 +13,29 @@ function column(sizes: number[], children: RegionNode[]): RegionNode {
 }
 
 export const LAYOUT_PRESETS: Record<LayoutPresetId, LayoutPreset> = {
-    classic: {
-        id: "classic",
-        label: "Classic",
+    new: {
+        id: "new",
+        label: "New",
         regions: row(
             [30, 45, 25],
             [
                 panel("task"),
                 column([70, 30], [panel("editor"), panel("console")]),
                 column([60, 40], [panel("feedback"), panel("files")]),
+            ],
+        ),
+    },
+    classic: {
+        id: "classic",
+        label: "Classic",
+        regions: column(
+            [20, 30, 10, 30, 10],
+            [
+                row([75, 25], [panel("task"), panel("trace")]),
+                row([50, 50], [panel("console"), panel("feedback")]),
+                panel("files"),
+                panel("editor"),
+                panel("history"),
             ],
         ),
     },
