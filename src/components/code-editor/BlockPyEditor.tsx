@@ -3,15 +3,7 @@ import { BlocklyWorkspace } from './BlocklyWorkspace';
 import { CodeMirrorEditor } from './CodeMirrorEditor';
 import { createSyncController } from '../../services/mlt/syncController';
 import { pythonToBlocks } from '../../services/mlt/pythonToBlocks';
-import { loadPyodide, runPython, isPyodideLoaded } from '../../services/python/pyodideRunner';
-import { isCorrectRun } from '../../embed/config';
-import type {
-  SyncState,
-  TranslationError,
-  ExecutionResult,
-  BlockPyResolvedConfig,
-  BlockPyRunContext,
-} from '../../types';
+import type { SyncState, BlockPyResolvedConfig } from '../../types';
 
 const EMPTY_BLOCKS_XML = '<xml xmlns="https://developers.google.com/blockly/xml"></xml>';
 const MIN_LEFT_PANE_PERCENT = 20;
@@ -35,10 +27,6 @@ export function BlockPyEditor({ config }: BlockPyEditorProps) {
 
   const [code, setCode] = useState(initialCode);
   const [blocksXml, setBlocksXml] = useState<string | undefined>(initialBlocksXml);
-  const [submissionCorrectness, setSubmissionCorrectness] = useState<boolean | null>(
-    config.initialState.submission.correctness,
-  );
-  const [submissionStatus, setSubmissionStatus] = useState(config.initialState.submission.status);
   const [syncState, setSyncState] = useState<SyncState>({
     source: 'external',
     isDirty: false,
@@ -47,12 +35,6 @@ export function BlockPyEditor({ config }: BlockPyEditorProps) {
     isParsing: false,
     parseErrors: initialParseResult.errors,
   });
-  const [output, setOutput] = useState('');
-  const [executionError, setExecutionError] = useState<string | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
-  const [isLoadingPyodide, setIsLoadingPyodide] = useState(false);
-  const [parseErrors, setParseErrors] = useState<TranslationError[]>([]);
-  const [hasRun, setHasRun] = useState(false);
   const [leftPanePercent, setLeftPanePercent] = useState(50);
   const [isDraggingDivider, setIsDraggingDivider] = useState(false);
   const editorPanesRef = useRef<HTMLDivElement | null>(null);
@@ -62,11 +44,8 @@ export function BlockPyEditor({ config }: BlockPyEditorProps) {
   const syncControllerRef = useRef(
     createSyncController({
       onCodeUpdate: (newCode) => setCode(newCode),
-      onBlocksUpdate: (xml, errors) => {
-        setBlocksXml(xml);
-        setParseErrors(errors);
-      },
-      onParseErrors: (errors) => setParseErrors(errors),
+      onBlocksUpdate: (xml) => setBlocksXml(xml),
+      onParseErrors: () => {},
       onSyncStateChange: (state) => setSyncState(state),
     }),
   );
@@ -81,8 +60,6 @@ export function BlockPyEditor({ config }: BlockPyEditorProps) {
     submission: {
       ...config.initialState.submission,
       code,
-      correctness: submissionCorrectness,
-      status: submissionStatus,
     },
   };
 
@@ -192,189 +169,14 @@ export function BlockPyEditor({ config }: BlockPyEditorProps) {
     [config.initialState.display.readOnly],
   );
 
-  const handleRun = useCallback(async () => {
-    setIsRunning(true);
-    setSubmissionStatus('running');
-    setOutput('');
-    setExecutionError(null);
-    setHasRun(true);
-    callbacks.onRunStart?.({
-      ...currentState,
-      submission: {
-        ...currentState.submission,
-        status: 'running',
-      },
-    });
-
-    try {
-      if (!isPyodideLoaded()) {
-        setIsLoadingPyodide(true);
-        await loadPyodide();
-        setIsLoadingPyodide(false);
-      }
-
-      const result: ExecutionResult = await runPython(code);
-      setOutput(result.stdout || '');
-      if (result.error) {
-        setExecutionError(`${result.error.type}: ${result.error.message}`);
-      }
-      if (result.stderr) {
-        setExecutionError((prev) => (prev ? prev + '\n' : '') + result.stderr);
-      }
-
-      const runContext: BlockPyRunContext = {
-        result,
-        state: {
-          ...currentState,
-          submission: {
-            ...currentState.submission,
-            status: result.error || result.stderr ? 'error' : 'completed',
-          },
-        },
-        code,
-        parseErrors,
-      };
-
-      const succeeded = isCorrectRun(runContext, config);
-      setSubmissionCorrectness(succeeded);
-      setSubmissionStatus(result.error || result.stderr ? 'error' : 'completed');
-      callbacks.onRunComplete?.(runContext);
-      if (succeeded) {
-        callbacks.onRunSuccess?.(runContext);
-      }
-    } catch (e) {
-      setExecutionError(e instanceof Error ? e.message : String(e));
-      setSubmissionCorrectness(false);
-      setSubmissionStatus('error');
-    } finally {
-      setIsRunning(false);
-      setIsLoadingPyodide(false);
-    }
-  }, [callbacks, code, config, currentState, parseErrors]);
-
-  const handleReset = useCallback(() => {
-    setCode(initialCode);
-    setOutput('');
-    setExecutionError(null);
-    setHasRun(false);
-    setParseErrors(initialParseResult.errors);
-    setBlocksXml(initialBlocksXml);
-    setSubmissionCorrectness(config.initialState.submission.correctness);
-    setSubmissionStatus(config.initialState.submission.status);
-    syncControllerRef.current.reset();
-    syncControllerRef.current.onTextChange(initialCode);
-  }, [
-    config.initialState.submission.correctness,
-    config.initialState.submission.status,
-    initialBlocksXml,
-    initialCode,
-    initialParseResult.errors,
-  ]);
-
   const syncSource = syncState.source;
-
-  // Determine feedback badge
-  const feedbackBadgeClass = executionError
-    ? 'feedback-badge feedback-badge-error'
-    : output
-      ? 'feedback-badge feedback-badge-success'
-      : 'feedback-badge feedback-badge-none';
-  const feedbackCategory = executionError ? 'Error' : output ? 'No Errors' : 'Ready';
 
   return (
     <div className="blockpy-editor" role="main" aria-label="BlockPy dual Python editor">
-      {/* Row 1: Problem description */}
-      <div className="blockpy-header-row">
-        <div className="blockpy-description" role="heading" aria-label="Assignment Description">
-          <span className="blockpy-name">
-            <strong>BlockPy:</strong> {config.initialState.assignment.name}
-          </span>
-          <div className="blockpy-instructions">{config.initialState.assignment.instructions}</div>
-        </div>
-        <div className="blockpy-quick-menu" role="menubar" aria-label="Quick Menu">
-          {config.initialState.runtime.partId
-            ? `Part ${config.initialState.runtime.partId}`
-            : 'No submission required.'}
-        </div>
-      </div>
-
-      {/* Row 2: Console + Feedback */}
-      <div className="blockpy-second-row">
-        {/* Console */}
-        <div className="blockpy-console" role="region" aria-label="Console">
-          <strong>Console:</strong>
-          <div className="blockpy-printer" aria-live="polite">
-            {output ? (
-              output
-            ) : executionError ? null : hasRun ? (
-              <span className="output-placeholder">(no output)</span>
-            ) : (
-              <span className="output-placeholder">Run your code to see output here</span>
-            )}
-            {executionError && <span className="error-line">{executionError}</span>}
-          </div>
-        </div>
-
-        {/* Feedback */}
-        <div
-          className="blockpy-feedback-panel"
-          role="region"
-          aria-label="Feedback"
-          aria-live="polite"
-        >
-          <strong>
-            Feedback: <span className={feedbackBadgeClass}>{feedbackCategory}</span>
-          </strong>
-          <div className="blockpy-feedback-content">
-            {parseErrors.length > 0 ? (
-              <div className="parse-errors">
-                {parseErrors.map((err, i) => (
-                  <div key={i} className="parse-error-item">
-                    <strong>{err.type === 'unsupported_syntax' ? 'Unsupported' : 'Error'}:</strong>{' '}
-                    {err.message}
-                    {err.location && (
-                      <span className="parse-error-location">
-                        {' '}
-                        (line {err.location.line}, col {err.location.col})
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : executionError ? (
-              <div className="feedback-message">{executionError}</div>
-            ) : output ? (
-              <div className="feedback-ready">Program ran successfully.</div>
-            ) : (
-              <div className="feedback-ready">Ready</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Row 3: Toolbar + Editor panes */}
+      {/* Toolbar + Editor panes */}
       <div className="blockpy-editor-row">
         {/* Toolbar */}
         <div className="toolbar" role="toolbar" aria-label="Editor controls">
-          <button
-            onClick={() => void handleRun()}
-            disabled={isRunning}
-            className={`btn btn-run${isRunning ? ' running' : ''}`}
-            aria-label={isRunning ? 'Running Python code' : 'Run Python code'}
-          >
-            {isRunning
-              ? isLoadingPyodide
-                ? '\u23f3 Loading...'
-                : '\u23f3 Running...'
-              : '\u25b6 Run'}
-          </button>
-          <button
-            onClick={handleReset}
-            className="btn btn-secondary"
-            aria-label="Reset editor to initial state"
-          >
-            Reset
-          </button>
           <span className="sync-status" aria-live="polite">
             {syncState.isParsing && <span className="status-parsing">\u23f3 Parsing...</span>}
             {syncSource === 'blocks' && !syncState.isParsing && (
