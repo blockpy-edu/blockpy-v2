@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { blockToCode, statementToCode, workspaceToPython } from "../mlt/blockToPython";
 import { PYTHON_BLOCK_TYPES } from "../mlt/pythonBlocks";
 import type { TranslationError } from "../../types";
+import type { BlocklyBlock } from "../mlt/nodes/blocklyTypes";
 
 interface MockBlock {
     type: string;
@@ -16,14 +17,15 @@ function makeBlock(
     fields: Record<string, string> = {},
     inputs: Record<string, MockBlock | null> = {},
     next: MockBlock | null = null,
-): MockBlock {
+): BlocklyBlock {
     const block = {
         type,
         getFieldValue: (name: string) => fields[name] ?? "",
-        getInputTargetBlock: (name: string) => inputs[name] ?? null,
-        getNextBlock: () => next,
+        getInputTargetBlock: (name: string) =>
+            (inputs[name] ?? null) as unknown as BlocklyBlock | null,
+        getNextBlock: () => next as unknown as BlocklyBlock | null,
     };
-    return block;
+    return block as unknown as BlocklyBlock;
 }
 
 describe("blockToCode", () => {

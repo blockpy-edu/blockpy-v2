@@ -3,8 +3,8 @@ import type { TranslationError } from "../../../types";
 import type { BlocklyBlock } from "./blocklyTypes";
 
 export interface BlockToPythonContext {
-    blockToCode: (block: BlocklyBlock, errors: TranslationError[]) => string;
-    statementToCode: (block: BlocklyBlock, errors: TranslationError[]) => string;
+    blockToCode: (block: BlocklyBlock | null, errors: TranslationError[]) => string;
+    statementToCode: (block: BlocklyBlock | null, errors: TranslationError[]) => string;
     indent: (code: string, spaces?: number) => string;
     variadicInputCodes: (
         block: BlocklyBlock,

@@ -4,6 +4,7 @@ import { filesToBundle, serializeBundle } from "./bundle";
 import { MAIN_STUDENT_FILE, STARTING_CODE_FILE } from "./vfs";
 import type { VfsFile } from "./types";
 import type { SaveFileParams } from "../api/endpoints/submissions";
+import type { InstructorFilename } from "../api/types";
 
 export interface SaveIds {
     submissionId: number | null;
@@ -11,7 +12,7 @@ export interface SaveIds {
 }
 
 /** Instructor column file names → wire sigil filenames. */
-const INSTRUCTOR_COLUMN_FILENAMES: Record<string, SaveFileParams["filename"]> = {
+const INSTRUCTOR_COLUMN_FILENAMES: Record<string, InstructorFilename> = {
     "on_run.py": "!on_run.py",
     "on_change.py": "!on_change.py",
     "on_eval.py": "!on_eval.py",

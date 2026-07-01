@@ -43,7 +43,7 @@ function comprehensionClauses(block: BlocklyBlock, errors: TranslationError[]): 
     return variadicInputCodes(block, "GENERATOR", errors).filter(Boolean);
 }
 
-function blockToCode(block: BlocklyBlock, errors: TranslationError[]): string {
+function blockToCode(block: BlocklyBlock | null, errors: TranslationError[]): string {
     if (!block) return "";
     const type = block.type as string;
     const handler = blockToPythonHandlers[type];
@@ -66,7 +66,7 @@ function blockToCode(block: BlocklyBlock, errors: TranslationError[]): string {
     return handler(block, errors, ctx);
 }
 
-function statementToCode(block: BlocklyBlock, errors: TranslationError[]): string {
+function statementToCode(block: BlocklyBlock | null, errors: TranslationError[]): string {
     if (!block) return "";
     const lines: string[] = [];
     let current: BlocklyBlock | null = block;
