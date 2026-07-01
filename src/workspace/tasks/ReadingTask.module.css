@@ -1,29 +1,29 @@
 .reading {
-  margin-top: 0.75rem;
+    margin-top: 0.75rem;
 }
 
 .actions {
-  margin: 1rem 0 0;
+    margin: 1rem 0 0;
 }
 
 .markButton {
-  font-size: 0.875rem;
-  padding: 0.35rem 0.9rem;
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-  background: var(--color-primary);
-  color: #fff;
-  cursor: pointer;
+    font-size: 0.875rem;
+    padding: 0.35rem 0.9rem;
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+    background: var(--color-primary);
+    color: #fff;
+    cursor: pointer;
 }
 
 .done {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-success);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-success);
 }
 
 .error {
-  margin: 0.5rem 0 0;
-  font-size: 0.8125rem;
-  color: var(--color-error);
+    margin: 0.5rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--color-error);
 }

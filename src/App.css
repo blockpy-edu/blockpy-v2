@@ -1,125 +1,124 @@
 .app {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
-  background-color: var(--color-bg);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  color: var(--color-text);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background-color: var(--color-bg);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--color-text);
 }
 
 .app-main {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 /* BlockPy Editor — outer container */
 .blockpy-editor {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-  border: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
 }
 
 /* ── Toolbar + Editor panes ── */
 .blockpy-editor-row {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
 }
 
 /* Toolbar */
 .toolbar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  background: var(--color-bg);
-  border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
 }
 
 .sync-status {
-  margin-left: auto;
-  font-size: 12px;
+    margin-left: auto;
+    font-size: 12px;
 }
 
 .status-parsing,
 .status-blocks,
 .status-text {
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background-color: var(--color-surface-alt);
-  color: var(--color-text-muted);
-  font-size: 12px;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-surface-alt);
+    color: var(--color-text-muted);
+    font-size: 12px;
 }
 
 /* Editor panes */
 .editor-panes {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
 }
 
 .editor-panes.dragging,
 .editor-panes.dragging * {
-  cursor: col-resize;
+    cursor: col-resize;
 }
 
 .editor-pane {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
 }
 
 .editor-divider {
-  width: 8px;
-  background: var(--color-border);
-  flex-shrink: 0;
-  cursor: col-resize;
-  touch-action: none;
+    width: 8px;
+    background: var(--color-border);
+    flex-shrink: 0;
+    cursor: col-resize;
+    touch-action: none;
 }
 
 .editor-divider:hover,
 .editor-panes.dragging .editor-divider {
-  background: var(--color-border-strong);
+    background: var(--color-border-strong);
 }
 
 .pane-header {
-  display: flex;
-  align-items: center;
-  padding: 3px 8px;
-  background: var(--color-surface-alt);
-  border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 3px 8px;
+    background: var(--color-surface-alt);
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
 }
 
 .pane-header h2 {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
 }
 
 .pane-content {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
 }
 
 .blockly-container,
 .codemirror-container {
-  height: 100%;
-  width: 100%;
+    height: 100%;
+    width: 100%;
 }
-

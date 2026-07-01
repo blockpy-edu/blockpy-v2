@@ -1,58 +1,58 @@
 .region {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .row {
-  flex-direction: row;
+    flex-direction: row;
 }
 
 .column {
-  flex-direction: column;
+    flex-direction: column;
 }
 
 .pane {
-  flex: 1 1 var(--pane-size);
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
+    flex: 1 1 var(--pane-size);
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .paneCollapsed {
-  flex: 0 0 auto;
+    flex: 0 0 auto;
 }
 
 .separator {
-  flex: 0 0 auto;
-  background-color: var(--color-border, #ccc);
-  touch-action: none;
+    flex: 0 0 auto;
+    background-color: var(--color-border, #ccc);
+    touch-action: none;
 }
 
 .separator:focus-visible {
-  outline: 2px solid var(--color-accent, #2563eb);
-  outline-offset: -2px;
+    outline: 2px solid var(--color-accent, #2563eb);
+    outline-offset: -2px;
 }
 
 .row > .separator {
-  width: 6px;
-  cursor: col-resize;
+    width: 6px;
+    cursor: col-resize;
 }
 
 .column > .separator {
-  height: 6px;
-  cursor: row-resize;
+    height: 6px;
+    cursor: row-resize;
 }
 
 .separator:hover,
 .separatorActive {
-  background-color: var(--color-accent, #2563eb);
+    background-color: var(--color-accent, #2563eb);
 }
 
 .separatorDisabled {
-  cursor: default;
-  background-color: var(--color-border, #ccc);
+    cursor: default;
+    background-color: var(--color-border, #ccc);
 }

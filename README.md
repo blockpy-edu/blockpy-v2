@@ -134,39 +134,39 @@ The browser global `window.BlockPy.mount(node, config?)` mounts the editor into 
 ```html
 <div id="lesson-editor"></div>
 <script>
-  const node = document.getElementById('lesson-editor');
-  const handle = window.BlockPy.mount(node, {
-    user: { id: 'u-1', name: 'Ada', role: 'learner', courseId: 'c-1', groupId: 'g-1' },
-    assignment: {
-      id: 'a-1',
-      name: 'Loops Practice',
-      instructions: 'Write a loop that prints numbers 1 to 5.',
-      points: 10,
-      type: 'coding',
-      tags: ['loops', 'intro-python'],
-      startingCode: 'for i in range(1, 6):\n    print(i)\n',
-    },
-    submission: {
-      id: 'sub-1',
-      endpoint: '/api/submissions/sub-1',
-      ownerId: 'u-1',
-      version: 1,
-    },
-    server: {
-      urls: { api: 'https://lms.example.edu/api' },
-      accessToken: 'Bearer ...',
-    },
-    display: { readOnly: false },
-    runtime: { partId: 'part-1', expectedOutput: '1\n2\n3\n4\n5' },
-    callbacks: {
-      onRunSuccess: ({ state }) => {
-        console.log('Correct run for submission', state.submission.id);
-      },
-    },
-  });
+    const node = document.getElementById("lesson-editor");
+    const handle = window.BlockPy.mount(node, {
+        user: { id: "u-1", name: "Ada", role: "learner", courseId: "c-1", groupId: "g-1" },
+        assignment: {
+            id: "a-1",
+            name: "Loops Practice",
+            instructions: "Write a loop that prints numbers 1 to 5.",
+            points: 10,
+            type: "coding",
+            tags: ["loops", "intro-python"],
+            startingCode: "for i in range(1, 6):\n    print(i)\n",
+        },
+        submission: {
+            id: "sub-1",
+            endpoint: "/api/submissions/sub-1",
+            ownerId: "u-1",
+            version: 1,
+        },
+        server: {
+            urls: { api: "https://lms.example.edu/api" },
+            accessToken: "Bearer ...",
+        },
+        display: { readOnly: false },
+        runtime: { partId: "part-1", expectedOutput: "1\n2\n3\n4\n5" },
+        callbacks: {
+            onRunSuccess: ({ state }) => {
+                console.log("Correct run for submission", state.submission.id);
+            },
+        },
+    });
 
-  // Later, when needed:
-  // handle.unmount();
+    // Later, when needed:
+    // handle.unmount();
 </script>
 ```
 

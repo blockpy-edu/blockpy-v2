@@ -1,26 +1,31 @@
-import { PYTHON_BLOCK_TYPES } from '../../blockTypes';
-import type { AstNodeModule } from '../types';
+import { PYTHON_BLOCK_TYPES } from "../../blockTypes";
+import type { AstNodeModule } from "../types";
 
 export const expressionStatementAstModule: AstNodeModule = {
-  blockType: PYTHON_BLOCK_TYPES.EXPR_STMT,
-  statementNodeTypes: ['ExpressionStatement'],
-  statementToBlock: (node, source, errors, ctx) => {
-    const exprNode = node.firstChild;
-    if (!exprNode) return '';
-    const exprXml = ctx.exprToBlock(exprNode, source, errors);
-    if (exprXml.includes(`type="${PYTHON_BLOCK_TYPES.PRINT}"`)) {
-      return exprXml;
-    }
-    return ctx.makeBlock(PYTHON_BLOCK_TYPES.EXPR_STMT, {}, { VALUE: exprXml }, {});
-  },
+    blockType: PYTHON_BLOCK_TYPES.EXPR_STMT,
+    statementNodeTypes: ["ExpressionStatement"],
+    statementToBlock: (node, source, errors, ctx) => {
+        const exprNode = node.firstChild;
+        if (!exprNode) return "";
+        const exprXml = ctx.exprToBlock(exprNode, source, errors);
+        if (exprXml.includes(`type="${PYTHON_BLOCK_TYPES.PRINT}"`)) {
+            return exprXml;
+        }
+        return ctx.makeBlock(PYTHON_BLOCK_TYPES.EXPR_STMT, {}, { VALUE: exprXml }, {});
+    },
 };
 
 export const yieldStatementAstModule: AstNodeModule = {
-  blockType: PYTHON_BLOCK_TYPES.EXPR_STMT,
-  statementNodeTypes: ['YieldStatement'],
-  statementToBlock: (node, source, errors, ctx) => {
-    const children = ctx.meaningfulChildren(node);
-    const valueXml = children[0] ? ctx.exprToBlock(children[0], source, errors) : '';
-    return ctx.makeBlock(PYTHON_BLOCK_TYPES.EXPR_STMT, {}, valueXml ? { VALUE: valueXml } : {}, {});
-  },
+    blockType: PYTHON_BLOCK_TYPES.EXPR_STMT,
+    statementNodeTypes: ["YieldStatement"],
+    statementToBlock: (node, source, errors, ctx) => {
+        const children = ctx.meaningfulChildren(node);
+        const valueXml = children[0] ? ctx.exprToBlock(children[0], source, errors) : "";
+        return ctx.makeBlock(
+            PYTHON_BLOCK_TYPES.EXPR_STMT,
+            {},
+            valueXml ? { VALUE: valueXml } : {},
+            {},
+        );
+    },
 };

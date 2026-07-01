@@ -3,46 +3,46 @@
 // leaves reference panels by id.
 
 export type PanelId =
-  | 'task'
-  | 'instructions'
-  | 'files'
-  | 'editor'
-  | 'console'
-  | 'feedback'
-  | 'history'
-  | 'trace';
+    | "task"
+    | "instructions"
+    | "files"
+    | "editor"
+    | "console"
+    | "feedback"
+    | "history"
+    | "trace";
 
-export type PanelKind = 'task' | 'resource' | 'tool' | 'context';
+export type PanelKind = "task" | "resource" | "tool" | "context";
 
-export type SplitDirection = 'row' | 'column';
+export type SplitDirection = "row" | "column";
 
 export interface PanelNode {
-  kind: 'panel';
-  panelId: PanelId;
+    kind: "panel";
+    panelId: PanelId;
 }
 
 export interface SplitNode {
-  kind: 'split';
-  direction: SplitDirection;
-  /** Percentages summing to 100, one per child. */
-  sizes: number[];
-  children: RegionNode[];
+    kind: "split";
+    direction: SplitDirection;
+    /** Percentages summing to 100, one per child. */
+    sizes: number[];
+    children: RegionNode[];
 }
 
 export type RegionNode = PanelNode | SplitNode;
 
 export type LayoutPresetId =
-  | 'classic'
-  | 'reading'
-  | 'quiz'
-  | 'sideBySide'
-  | 'instructor'
-  | 'stacked';
+    | "classic"
+    | "reading"
+    | "quiz"
+    | "sideBySide"
+    | "instructor"
+    | "stacked";
 
 export interface LayoutPreset {
-  id: LayoutPresetId;
-  label: string;
-  regions: RegionNode;
+    id: LayoutPresetId;
+    label: string;
+    regions: RegionNode;
 }
 
 /** Minimum size (in %) any pane may be resized to. */

@@ -26,29 +26,29 @@ All worker communication is a typed discriminated union (`protocol.ts`):
 
 ```ts
 type ToWorker =
-  | { kind: 'init'; pyodideUrl: string; packages: string[] }
-  | {
-      kind: 'run';
-      phase: Phase;
-      files: RuntimeFileMap;
-      main: string;
-      inputs: string[];
-      settings: RunSettings;
-      runId: number;
-    }
-  | { kind: 'evaluate'; code: string; runId: number } // console REPL
-  | { kind: 'input-response'; value: string }
-  | { kind: 'interrupt' }; // SharedArrayBuffer or terminate
+    | { kind: "init"; pyodideUrl: string; packages: string[] }
+    | {
+          kind: "run";
+          phase: Phase;
+          files: RuntimeFileMap;
+          main: string;
+          inputs: string[];
+          settings: RunSettings;
+          runId: number;
+      }
+    | { kind: "evaluate"; code: string; runId: number } // console REPL
+    | { kind: "input-response"; value: string }
+    | { kind: "interrupt" }; // SharedArrayBuffer or terminate
 
 type FromWorker =
-  | { kind: 'ready' }
-  | { kind: 'stdout' | 'stderr'; text: string; runId: number }
-  | { kind: 'input-request'; prompt: string; runId: number }
-  | { kind: 'image'; png: string; runId: number } // turtle/matplotlib
-  | { kind: 'trace-step'; step: TraceStep; runId: number }
-  | { kind: 'result'; runId: number; outcome: RunOutcome }
-  | { kind: 'feedback-raw'; runId: number; payload: InstructorFeedbackRaw }
-  | { kind: 'fatal'; error: EngineError };
+    | { kind: "ready" }
+    | { kind: "stdout" | "stderr"; text: string; runId: number }
+    | { kind: "input-request"; prompt: string; runId: number }
+    | { kind: "image"; png: string; runId: number } // turtle/matplotlib
+    | { kind: "trace-step"; step: TraceStep; runId: number }
+    | { kind: "result"; runId: number; outcome: RunOutcome }
+    | { kind: "feedback-raw"; runId: number; payload: InstructorFeedbackRaw }
+    | { kind: "fatal"; error: EngineError };
 ```
 
 `runId` correlates streams to runs so a stale worker message can never pollute a
@@ -96,22 +96,22 @@ surface is locked to what existing on_run scripts use; survey during Slice 4.
 
 ```ts
 export interface Feedback {
-  category:
-    | 'syntax'
-    | 'runtime'
-    | 'analyzer'
-    | 'instructor'
-    | 'success'
-    | 'partial'
-    | 'system'
-    | 'none';
-  label: string; // short title ("SyntaxError", "Complete!")
-  message: string; // sanitized HTML (doc 07 §3)
-  priority: number;
-  score: number | null; // 0..1 when grading occurred
-  correct: boolean;
-  hiddenFromStudent: boolean; // assignment.hidden support
-  location?: { file: string; line: number };
+    category:
+        | "syntax"
+        | "runtime"
+        | "analyzer"
+        | "instructor"
+        | "success"
+        | "partial"
+        | "system"
+        | "none";
+    label: string; // short title ("SyntaxError", "Complete!")
+    message: string; // sanitized HTML (doc 07 §3)
+    priority: number;
+    score: number | null; // 0..1 when grading occurred
+    correct: boolean;
+    hiddenFromStudent: boolean; // assignment.hidden support
+    location?: { file: string; line: number };
 }
 ```
 

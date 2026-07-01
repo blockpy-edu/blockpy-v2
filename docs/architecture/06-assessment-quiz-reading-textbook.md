@@ -19,36 +19,36 @@ mirror existing quizzer types).
 ```ts
 // src/quiz/types.ts
 export interface QuizInstructions {
-  questions: Record<string, QuizQuestion>;
-  settings: {
-    attemptLimit: number; // -1 = unlimited
-    coolDown: number; // -1 = none
-    feedbackType: 'IMMEDIATE' | 'NONE' | 'SUMMARY';
-    questionsPerPage: number; // -1 = all on one page
-    poolRandomness: 'ATTEMPT' | 'SEED' | 'NONE' | 'GROUP';
-    readingId: number | null; // optional reading preamble shown above the quiz
-  };
-  pools: { name: string; amount: number; questions: string[]; group?: string }[];
+    questions: Record<string, QuizQuestion>;
+    settings: {
+        attemptLimit: number; // -1 = unlimited
+        coolDown: number; // -1 = none
+        feedbackType: "IMMEDIATE" | "NONE" | "SUMMARY";
+        questionsPerPage: number; // -1 = all on one page
+        poolRandomness: "ATTEMPT" | "SEED" | "NONE" | "GROUP";
+        readingId: number | null; // optional reading preamble shown above the quiz
+    };
+    pools: { name: string; amount: number; questions: string[]; group?: string }[];
 }
 
 export type QuizQuestion =
-  | McqQuestion // 'multiple_choice_question'
-  | MultipleAnswersQuestion // 'multiple_answers_question'
-  | TrueFalseQuestion // 'true_false_question'
-  | TextOnlyQuestion // 'text_only_question'
-  | MatchingQuestion // 'matching_question'   (statements + answers dropdowns)
-  | MultipleDropdownsQuestion // 'multiple_dropdowns_question' ([key] markers in body)
-  | ShortAnswerQuestion // 'short_answer_question'
-  | FillInMultipleBlanksQuestion // 'fill_in_multiple_blanks_question' ([key] markers)
-  | CalculatedQuestion // 'calculated_question'
-  | EssayQuestion // 'essay_question'
-  | FileUploadQuestion // 'file_upload_question'
-  | NumericalQuestion; // 'numerical_question'
+    | McqQuestion // 'multiple_choice_question'
+    | MultipleAnswersQuestion // 'multiple_answers_question'
+    | TrueFalseQuestion // 'true_false_question'
+    | TextOnlyQuestion // 'text_only_question'
+    | MatchingQuestion // 'matching_question'   (statements + answers dropdowns)
+    | MultipleDropdownsQuestion // 'multiple_dropdowns_question' ([key] markers in body)
+    | ShortAnswerQuestion // 'short_answer_question'
+    | FillInMultipleBlanksQuestion // 'fill_in_multiple_blanks_question' ([key] markers)
+    | CalculatedQuestion // 'calculated_question'
+    | EssayQuestion // 'essay_question'
+    | FileUploadQuestion // 'file_upload_question'
+    | NumericalQuestion; // 'numerical_question'
 
 export interface QuizSubmission {
-  studentAnswers: Record<string, QuizAnswerValue>;
-  attempt: { attempting: boolean; count: number; mulligans: number };
-  feedback: Record<string, QuizFeedback>; // {correct, score, message, status}
+    studentAnswers: Record<string, QuizAnswerValue>;
+    attempt: { attempting: boolean; count: number; mulligans: number };
+    feedback: Record<string, QuizFeedback>; // {correct, score, message, status}
 }
 ```
 

@@ -17,31 +17,31 @@ Mirrors `models/assignment.py` and `frontend/models/assignment.ts` (`AssignmentJ
 ```ts
 // src/api/types.ts (wire format — verified against frontend/models/assignment.ts)
 export interface AssignmentJson {
-  id: number;
-  name: string;
-  url: string;
-  type: AssignmentType; // see 1.2
-  instructions: string; // markdown | quiz-instructions JSON | textbook JSON
-  reviewed: boolean;
-  hidden: boolean; // hide correctness from students
-  public: boolean;
-  subordinate: boolean; // meant to be used inside another assignment
-  ip_ranges: string;
-  points: number;
-  settings: string; // JSON-encoded AssignmentSettings (doc 03 §4)
-  on_run: string; // grader code (python) | quiz checks JSON
-  on_change: string;
-  on_eval: string;
-  starting_code: string;
-  extra_instructor_files: string; // JSON bundle, see doc 04 §5
-  extra_starting_files: string; // JSON bundle
-  forked_id: number | null;
-  forked_version: number | null;
-  owner_id: number;
-  course_id: number;
-  version: number;
-  date_created: string;
-  date_modified: string;
+    id: number;
+    name: string;
+    url: string;
+    type: AssignmentType; // see 1.2
+    instructions: string; // markdown | quiz-instructions JSON | textbook JSON
+    reviewed: boolean;
+    hidden: boolean; // hide correctness from students
+    public: boolean;
+    subordinate: boolean; // meant to be used inside another assignment
+    ip_ranges: string;
+    points: number;
+    settings: string; // JSON-encoded AssignmentSettings (doc 03 §4)
+    on_run: string; // grader code (python) | quiz checks JSON
+    on_change: string;
+    on_eval: string;
+    starting_code: string;
+    extra_instructor_files: string; // JSON bundle, see doc 04 §5
+    extra_starting_files: string; // JSON bundle
+    forked_id: number | null;
+    forked_version: number | null;
+    owner_id: number;
+    course_id: number;
+    version: number;
+    date_created: string;
+    date_modified: string;
 }
 ```
 
@@ -60,13 +60,13 @@ From `models/enums/assignments.py` and observed usage:
 
 ```ts
 export type AssignmentType =
-  | 'blockpy' // programming exercise (the default editor)
-  | 'reading' // markdown/video reading with progress tracking
-  | 'quiz' // quizzer JSON instructions + checks
-  | 'maze' // legacy maze game (extension point only in v2)
-  | 'textbook' // hierarchical container of readings/assignments
-  | 'explain' // code-explanation activity
-  | 'kettle'; // TS/JS exercises (extension point only in v2)
+    | "blockpy" // programming exercise (the default editor)
+    | "reading" // markdown/video reading with progress tracking
+    | "quiz" // quizzer JSON instructions + checks
+    | "maze" // legacy maze game (extension point only in v2)
+    | "textbook" // hierarchical container of readings/assignments
+    | "explain" // code-explanation activity
+    | "kettle"; // TS/JS exercises (extension point only in v2)
 ```
 
 v2 fully implements `blockpy`, `reading`, `quiz`, `textbook`, `explain`; `maze`
@@ -77,24 +77,24 @@ and `kettle` get a typed extension point that renders a graceful fallback
 
 ```ts
 export interface AssignmentGroupJson {
-  id: number;
-  name: string;
-  url: string;
-  category: 'none' | 'exam' | 'homework' | 'classwork' | 'project' | 'quiz' | 'lab' | 'reading';
-  position: number;
-  forked_id: number | null;
-  forked_version: number | null;
-  owner_id: number;
-  course_id: number;
-  version: number;
+    id: number;
+    name: string;
+    url: string;
+    category: "none" | "exam" | "homework" | "classwork" | "project" | "quiz" | "lab" | "reading";
+    position: number;
+    forked_id: number | null;
+    forked_version: number | null;
+    owner_id: number;
+    course_id: number;
+    version: number;
 }
 
 export interface AssignmentGroupMembershipJson {
-  id: number;
-  assignment_group_id: number;
-  assignment_id: number;
-  position: number;
-  policy: string; // JSON: grading/visibility logic (server: membership.policy)
+    id: number;
+    assignment_group_id: number;
+    assignment_id: number;
+    position: number;
+    policy: string; // JSON: grading/visibility logic (server: membership.policy)
 }
 ```
 
@@ -109,31 +109,31 @@ Mirrors `models/submission.py` / `frontend/models/submission.ts`:
 
 ```ts
 export interface SubmissionJson {
-  id: number;
-  code: string; // answer.py | quiz submission JSON | explain JSON
-  extra_files: string; // JSON bundle ("#extra_student_files.blockpy")
-  url: string;
-  endpoint: string;
-  score: number; // integer 0..100 (server: as_int_score)
-  correct: boolean;
-  submission_status: SubmissionStatus;
-  grading_status: GradingStatus;
-  assignment_id: number | null;
-  assignment_group_id: number | null;
-  assignment_version: number;
-  course_id: number | null;
-  user_id: number | null;
-  version: number;
-  date_started: string | null;
-  date_submitted?: string | null;
-  date_due?: string | null;
-  date_locked?: string | null;
-  time_limit: string | null;
-  feedback: string | null;
+    id: number;
+    code: string; // answer.py | quiz submission JSON | explain JSON
+    extra_files: string; // JSON bundle ("#extra_student_files.blockpy")
+    url: string;
+    endpoint: string;
+    score: number; // integer 0..100 (server: as_int_score)
+    correct: boolean;
+    submission_status: SubmissionStatus;
+    grading_status: GradingStatus;
+    assignment_id: number | null;
+    assignment_group_id: number | null;
+    assignment_version: number;
+    course_id: number | null;
+    user_id: number | null;
+    version: number;
+    date_started: string | null;
+    date_submitted?: string | null;
+    date_due?: string | null;
+    date_locked?: string | null;
+    time_limit: string | null;
+    feedback: string | null;
 }
 
-export type SubmissionStatus = 'Started' | 'inProgress' | 'Submitted' | 'Completed' | 'incomplete';
-export type GradingStatus = 'FullyGraded' | 'Pending' | 'PendingManual' | 'Failed' | 'NotReady';
+export type SubmissionStatus = "Started" | "inProgress" | "Submitted" | "Completed" | "incomplete";
+export type GradingStatus = "FullyGraded" | "Pending" | "PendingManual" | "Failed" | "NotReady";
 ```
 
 Score conversion rule (verified): the server stores `int(round(100 * score))` and
@@ -156,14 +156,14 @@ Mirrors `models/log_tables/submission_log.py`:
 
 ```ts
 export interface LogEntry {
-  event_type: string; // SubmissionLogEvent or caliper-ish strings ("Run.Program")
-  file_path?: string;
-  category?: string;
-  label?: string;
-  message?: string; // JSON when extended=true
-  extended?: boolean;
-  client_timestamp: string; // Date.now().toString()
-  client_timezone: string; // new Date().getTimezoneOffset().toString()
+    event_type: string; // SubmissionLogEvent or caliper-ish strings ("Run.Program")
+    file_path?: string;
+    category?: string;
+    label?: string;
+    message?: string; // JSON when extended=true
+    extended?: boolean;
+    client_timestamp: string; // Date.now().toString()
+    client_timezone: string; // new Date().getTimezoneOffset().toString()
 }
 ```
 
@@ -223,15 +223,15 @@ Every save/log call from the legacy `AssignmentInterface.saveFile` sends:
 
 ```ts
 interface RequestEnvelope {
-  assignment_id: number;
-  assignment_group_id: number | null;
-  course_id: number | null;
-  submission_id: number | null;
-  user_id: number;
-  version: number; // assignment version
-  timestamp: number; // Date.now()
-  timezone: number; // getTimezoneOffset()
-  passcode?: string; // Story 3.3
+    assignment_id: number;
+    assignment_group_id: number | null;
+    course_id: number | null;
+    submission_id: number | null;
+    user_id: number;
+    version: number; // assignment version
+    timestamp: number; // Date.now()
+    timezone: number; // getTimezoneOffset()
+    passcode?: string; // Story 3.3
 }
 ```
 

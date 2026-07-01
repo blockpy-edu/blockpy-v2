@@ -3,7 +3,7 @@
 // entry points existing on_run curriculum expects. Results serialize to JSON
 // read back by the worker as InstructorFeedbackRaw.
 
-import type { InstructorFeedbackRaw, InstructorFeedbackMessage } from './protocol';
+import type { InstructorFeedbackRaw, InstructorFeedbackMessage } from "./protocol";
 
 /**
  * Python source executed before instructor code. Instructor phases receive
@@ -67,41 +67,41 @@ def __blockpy_feedback_json():
     )
 `;
 
-const MESSAGE_KINDS = new Set(['gently', 'explain', 'compliment', 'system']);
+const MESSAGE_KINDS = new Set(["gently", "explain", "compliment", "system"]);
 
 /** Total parser for the shim's JSON output; malformed input yields no-op feedback. */
 export function parseShimResult(raw: string): InstructorFeedbackRaw {
-  const empty: InstructorFeedbackRaw = { success: false, partial: 0, messages: [] };
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return empty;
-  }
-  if (typeof parsed !== 'object' || parsed === null) {
-    return empty;
-  }
-  const record = parsed as Record<string, unknown>;
-  const messages: InstructorFeedbackMessage[] = [];
-  if (Array.isArray(record.messages)) {
-    for (const item of record.messages) {
-      if (typeof item !== 'object' || item === null) {
-        continue;
-      }
-      const msg = item as Record<string, unknown>;
-      messages.push({
-        kind: MESSAGE_KINDS.has(msg.kind as string)
-          ? (msg.kind as InstructorFeedbackMessage['kind'])
-          : 'system',
-        label: typeof msg.label === 'string' ? msg.label : '',
-        message: typeof msg.message === 'string' ? msg.message : '',
-        line: typeof msg.line === 'number' ? msg.line : null,
-      });
+    const empty: InstructorFeedbackRaw = { success: false, partial: 0, messages: [] };
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(raw);
+    } catch {
+        return empty;
     }
-  }
-  return {
-    success: record.success === true,
-    partial: typeof record.partial === 'number' ? Math.min(1, Math.max(0, record.partial)) : 0,
-    messages,
-  };
+    if (typeof parsed !== "object" || parsed === null) {
+        return empty;
+    }
+    const record = parsed as Record<string, unknown>;
+    const messages: InstructorFeedbackMessage[] = [];
+    if (Array.isArray(record.messages)) {
+        for (const item of record.messages) {
+            if (typeof item !== "object" || item === null) {
+                continue;
+            }
+            const msg = item as Record<string, unknown>;
+            messages.push({
+                kind: MESSAGE_KINDS.has(msg.kind as string)
+                    ? (msg.kind as InstructorFeedbackMessage["kind"])
+                    : "system",
+                label: typeof msg.label === "string" ? msg.label : "",
+                message: typeof msg.message === "string" ? msg.message : "",
+                line: typeof msg.line === "number" ? msg.line : null,
+            });
+        }
+    }
+    return {
+        success: record.success === true,
+        partial: typeof record.partial === "number" ? Math.min(1, Math.max(0, record.partial)) : 0,
+        messages,
+    };
 }

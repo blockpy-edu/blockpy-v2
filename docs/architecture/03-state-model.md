@@ -30,12 +30,12 @@ src/store/
 
 ```ts
 interface SessionState {
-  user: { id: number; name: string };
-  course: { id: number; name: string } | null;
-  role: 'student' | 'instructor' | 'grader';
-  displayMode: 'normal' | 'readOnly' | 'grading' | 'presentation';
-  passcode: string | null;
-  serverless: boolean;
+    user: { id: number; name: string };
+    course: { id: number; name: string } | null;
+    role: "student" | "instructor" | "grader";
+    displayMode: "normal" | "readOnly" | "grading" | "presentation";
+    passcode: string | null;
+    serverless: boolean;
 }
 ```
 
@@ -46,14 +46,14 @@ envelope fields (doc 01 §2.4).
 
 ```ts
 interface ActivityState {
-  activity: Activity | null;
-  focusedTaskId: number | null;
-  status: 'idle' | 'loading' | 'ready' | 'error';
-  error: ApiError | null;
-  // derived (computed via selectors, not stored):
-  //   focusedTask, workContext, taskProgress[], canNavigate(target)
-  focusTask(id: number): NavigationVerdict;
-  reload(): Promise<void>;
+    activity: Activity | null;
+    focusedTaskId: number | null;
+    status: "idle" | "loading" | "ready" | "error";
+    error: ApiError | null;
+    // derived (computed via selectors, not stored):
+    //   focusedTask, workContext, taskProgress[], canNavigate(target)
+    focusTask(id: number): NavigationVerdict;
+    reload(): Promise<void>;
 }
 ```
 
@@ -66,15 +66,15 @@ Keyed by assignment id, since an activity has one submission per task:
 
 ```ts
 interface SubmissionState {
-  byTask: Record<number, TaskSubmission>;
-  saveQueue: SaveStatus; // 'idle' | 'saving' | 'offlineDirty' | 'error'
+    byTask: Record<number, TaskSubmission>;
+    saveQueue: SaveStatus; // 'idle' | 'saving' | 'offlineDirty' | 'error'
 }
 
 interface TaskSubmission {
-  submission: Submission; // domain type (score as 0..1 float)
-  dirtyFiles: Set<string>;
-  lastSavedAt: number | null;
-  versionConflict: boolean; // server reported version_change
+    submission: Submission; // domain type (score as 0..1 float)
+    dirtyFiles: Set<string>;
+    lastSavedAt: number | null;
+    versionConflict: boolean; // server reported version_change
 }
 ```
 
@@ -104,31 +104,31 @@ round-tripping, Story 19.5):
 ```ts
 // src/domain/assignmentSettings.ts
 export interface AssignmentSettings {
-  // editor
-  startView: 'split' | 'text' | 'block';
-  canChangeView: boolean;
-  enableBlocks: boolean;
-  // panels
-  hideFiles: boolean;
-  hideQueuedInputs: boolean;
-  hideEditors: boolean;
-  hideEvaluate: boolean; // console REPL
-  hideImportDatasetsButton: boolean;
-  hideImportStatements: boolean;
-  hideCoverageButton: boolean;
-  hideTraceButton: boolean;
-  // behavior
-  disableInstructorRun: boolean;
-  disableEdit: boolean;
-  disableTimeout: boolean;
-  onlyInteractive: boolean;
-  onlyUploads: boolean;
-  // grading
-  disableFeedback: boolean;
-  forceTextMode: boolean;
-  preventPaste: boolean; // logs X-Editor.Paste regardless
-  datasets: string[]; // preloaded dataset names
-  extra: Record<string, unknown>; // unknown legacy keys, round-tripped
+    // editor
+    startView: "split" | "text" | "block";
+    canChangeView: boolean;
+    enableBlocks: boolean;
+    // panels
+    hideFiles: boolean;
+    hideQueuedInputs: boolean;
+    hideEditors: boolean;
+    hideEvaluate: boolean; // console REPL
+    hideImportDatasetsButton: boolean;
+    hideImportStatements: boolean;
+    hideCoverageButton: boolean;
+    hideTraceButton: boolean;
+    // behavior
+    disableInstructorRun: boolean;
+    disableEdit: boolean;
+    disableTimeout: boolean;
+    onlyInteractive: boolean;
+    onlyUploads: boolean;
+    // grading
+    disableFeedback: boolean;
+    forceTextMode: boolean;
+    preventPaste: boolean; // logs X-Editor.Paste regardless
+    datasets: string[]; // preloaded dataset names
+    extra: Record<string, unknown>; // unknown legacy keys, round-tripped
 }
 
 export function parseAssignmentSettings(raw: string): AssignmentSettings; // never throws

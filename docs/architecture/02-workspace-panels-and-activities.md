@@ -25,28 +25,28 @@ standalone `Assignment`, treated as a group of one):
 ```ts
 // src/domain/activity.ts
 export interface Activity {
-  groupId: number | null; // null for standalone assignment
-  name: string;
-  category: AssignmentGroupCategory;
-  tasks: ActivityTask[]; // ordered by membership.position
+    groupId: number | null; // null for standalone assignment
+    name: string;
+    category: AssignmentGroupCategory;
+    tasks: ActivityTask[]; // ordered by membership.position
 }
 
 export interface ActivityTask {
-  assignmentId: number;
-  kind: TaskKind; // derived from assignment.type
-  title: string;
-  points: number;
-  policy: MembershipPolicy; // parsed membership.policy JSON
-  subordinate: boolean;
+    assignmentId: number;
+    kind: TaskKind; // derived from assignment.type
+    title: string;
+    points: number;
+    policy: MembershipPolicy; // parsed membership.policy JSON
+    subordinate: boolean;
 }
 
 export type TaskKind =
-  | { type: 'reading'; content: ReadingContent }
-  | { type: 'quiz'; instructions: QuizInstructions }
-  | { type: 'code'; settings: AssignmentSettings }
-  | { type: 'explain' }
-  | { type: 'textbookPage'; pageRef: TextbookPageRef }
-  | { type: 'unsupported'; rawType: string }; // maze/kettle fallback
+    | { type: "reading"; content: ReadingContent }
+    | { type: "quiz"; instructions: QuizInstructions }
+    | { type: "code"; settings: AssignmentSettings }
+    | { type: "explain" }
+    | { type: "textbookPage"; pageRef: TextbookPageRef }
+    | { type: "unsupported"; rawType: string }; // maze/kettle fallback
 ```
 
 A `TaskKind` is a discriminated union (AGENTS.md requirement) so panels switch
@@ -73,11 +73,11 @@ Tools never reach into tasks. When a task gains focus it publishes a
 
 ```ts
 export interface WorkContext {
-  taskId: number;
-  files: VfsHandle | null; // code tasks expose their VFS (doc 04)
-  runnable: boolean; // enables run button / console
-  primaryFile: string | null; // "answer.py" etc.
-  readOnly: boolean;
+    taskId: number;
+    files: VfsHandle | null; // code tasks expose their VFS (doc 04)
+    runnable: boolean; // enables run button / console
+    primaryFile: string | null; // "answer.py" etc.
+    readOnly: boolean;
 }
 ```
 
@@ -112,8 +112,8 @@ A `LayoutPreset` is data, not JSX:
 
 ```ts
 interface LayoutPreset {
-  id: 'classic' | 'reading' | 'quiz' | 'sideBySide' | 'instructor' | 'stacked';
-  regions: RegionNode; // recursive { dir: 'row'|'col', children, sizes }
+    id: "classic" | "reading" | "quiz" | "sideBySide" | "instructor" | "stacked";
+    regions: RegionNode; // recursive { dir: 'row'|'col', children, sizes }
 }
 ```
 

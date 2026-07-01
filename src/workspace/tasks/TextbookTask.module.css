@@ -1,70 +1,70 @@
 .textbook {
-  display: flex;
-  gap: 1rem;
-  margin-top: 0.75rem;
-  align-items: flex-start;
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    align-items: flex-start;
 }
 
 .navigation {
-  flex: 0 0 12rem;
-  border-right: 1px solid var(--color-border-strong);
-  padding-right: 0.75rem;
+    flex: 0 0 12rem;
+    border-right: 1px solid var(--color-border-strong);
+    padding-right: 0.75rem;
 }
 
 .tree {
-  list-style: none;
-  margin: 0;
-  padding: 0 0 0 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 0.5rem;
 }
 
 .tree > li {
-  margin: 0.15rem 0;
+    margin: 0.15rem 0;
 }
 
 .sectionTitle {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
 }
 
 .pageButton {
-  font-size: 0.8125rem;
-  padding: 0.15rem 0.3rem;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--color-primary);
-  cursor: pointer;
-  text-align: left;
+    font-size: 0.8125rem;
+    padding: 0.15rem 0.3rem;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    text-align: left;
 }
 
-.pageButton[aria-current='page'] {
-  font-weight: 700;
-  background: var(--color-surface-alt);
+.pageButton[aria-current="page"] {
+    font-weight: 700;
+    background: var(--color-surface-alt);
 }
 
 .page {
-  flex: 1;
-  min-width: 0;
+    flex: 1;
+    min-width: 0;
 }
 
 .pageTitle {
-  margin: 0 0 0.5rem;
-  font-size: 1rem;
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
 }
 
 .openButton {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  padding: 0.3rem 0.8rem;
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-  background: var(--color-primary);
-  color: #fff;
-  cursor: pointer;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    padding: 0.3rem 0.8rem;
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+    background: var(--color-primary);
+    color: #fff;
+    cursor: pointer;
 }
 
 .note {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
 }

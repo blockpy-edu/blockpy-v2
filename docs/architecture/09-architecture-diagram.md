@@ -62,20 +62,20 @@ flowchart TB
 
 ## 2. Module ownership
 
-| Area | Owns | Main files |
-| ---- | ---- | ---------- |
-| Mount and embedding | Browser entry points, mount API, config resolution | `src/main.tsx`, `src/mount.tsx`, `src/embed/config.ts` |
-| Workspace shell | Toolbar, panel composition, layout selection, save/run controls | `src/workspace/WorkspaceShell.tsx`, `src/workspace/useWorkspace.ts` |
-| Activity sequencing | Multi-task flows, gating, deep links, focused task selection | `src/workspace/activity`, `src/domain/activity.ts` |
-| Panel layout | Split panes, presets, persistence, narrow-screen fallback | `src/workspace/layout` |
-| Tasks | Reading, quiz, explain, textbook, code-task presentation | `src/workspace/tasks`, `src/workspace/panels/TaskPanel.tsx` |
-| Files and saving | Virtual file system, dirty state, save planning, auto-save | `src/vfs`, `src/workspace/useAutoSave.ts` |
-| API boundary | Typed client, endpoint helpers, offline transport, event log | `src/api` |
-| Domain mapping | Assignment, submission, settings, textbook, explain parsers | `src/domain` |
-| Python execution | Worker protocol, Pyodide host, runtime lifecycle, feedback shaping | `src/engine` |
-| Editor surface | Blockly, CodeMirror, BlockPy editor wrapper | `src/components/code-editor`, `src/services/mlt` |
-| Prose and markdown | Sanitized markdown rendering for reading/instructions | `src/content` |
-| Quiz engine | Question schemas, tokenization, attempt rules, grading | `src/quiz` |
+| Area                | Owns                                                               | Main files                                                          |
+| ------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| Mount and embedding | Browser entry points, mount API, config resolution                 | `src/main.tsx`, `src/mount.tsx`, `src/embed/config.ts`              |
+| Workspace shell     | Toolbar, panel composition, layout selection, save/run controls    | `src/workspace/WorkspaceShell.tsx`, `src/workspace/useWorkspace.ts` |
+| Activity sequencing | Multi-task flows, gating, deep links, focused task selection       | `src/workspace/activity`, `src/domain/activity.ts`                  |
+| Panel layout        | Split panes, presets, persistence, narrow-screen fallback          | `src/workspace/layout`                                              |
+| Tasks               | Reading, quiz, explain, textbook, code-task presentation           | `src/workspace/tasks`, `src/workspace/panels/TaskPanel.tsx`         |
+| Files and saving    | Virtual file system, dirty state, save planning, auto-save         | `src/vfs`, `src/workspace/useAutoSave.ts`                           |
+| API boundary        | Typed client, endpoint helpers, offline transport, event log       | `src/api`                                                           |
+| Domain mapping      | Assignment, submission, settings, textbook, explain parsers        | `src/domain`                                                        |
+| Python execution    | Worker protocol, Pyodide host, runtime lifecycle, feedback shaping | `src/engine`                                                        |
+| Editor surface      | Blockly, CodeMirror, BlockPy editor wrapper                        | `src/components/code-editor`, `src/services/mlt`                    |
+| Prose and markdown  | Sanitized markdown rendering for reading/instructions              | `src/content`                                                       |
+| Quiz engine         | Question schemas, tokenization, attempt rules, grading             | `src/quiz`                                                          |
 
 ## 3. Dependency shape
 

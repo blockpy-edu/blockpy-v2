@@ -1,5 +1,5 @@
-import type { BlockPyApiClient } from '../client';
-import type { LogEventEntry } from '../types';
+import type { BlockPyApiClient } from "../client";
+import type { LogEventEntry } from "../types";
 
 const MAX_QUEUE_LENGTH = 100;
 
@@ -10,51 +10,51 @@ const MAX_QUEUE_LENGTH = 100;
  * persistent outage the oldest events are dropped.
  */
 export class EventLog {
-  private readonly client: BlockPyApiClient;
-  private readonly queue: LogEventEntry[] = [];
-  private inFlight: Promise<void> | null = null;
+    private readonly client: BlockPyApiClient;
+    private readonly queue: LogEventEntry[] = [];
+    private inFlight: Promise<void> | null = null;
 
-  constructor(client: BlockPyApiClient) {
-    this.client = client;
-  }
-
-  log(entry: LogEventEntry): void {
-    this.queue.push(entry);
-    if (this.queue.length > MAX_QUEUE_LENGTH) {
-      this.queue.splice(0, this.queue.length - MAX_QUEUE_LENGTH);
+    constructor(client: BlockPyApiClient) {
+        this.client = client;
     }
-    void this.flush();
-  }
 
-  /** Drains the queue; resolves when it is empty or a send fails. */
-  flush(): Promise<void> {
-    this.inFlight ??= this.drain().finally(() => {
-      this.inFlight = null;
-    });
-    return this.inFlight;
-  }
+    log(entry: LogEventEntry): void {
+        this.queue.push(entry);
+        if (this.queue.length > MAX_QUEUE_LENGTH) {
+            this.queue.splice(0, this.queue.length - MAX_QUEUE_LENGTH);
+        }
+        void this.flush();
+    }
 
-  private async drain(): Promise<void> {
-    while (this.queue.length > 0) {
-      const entry = this.queue[0];
-      try {
-        await this.client.post('blockpy/log_event', {
-          event_type: entry.event_type,
-          file_path: entry.file_path,
-          category: entry.category,
-          label: entry.label,
-          message: entry.message,
-          extended: entry.extended,
+    /** Drains the queue; resolves when it is empty or a send fails. */
+    flush(): Promise<void> {
+        this.inFlight ??= this.drain().finally(() => {
+            this.inFlight = null;
         });
-      } catch {
-        // Leave the entry queued; a later log()/flush() retries.
-        return;
-      }
-      this.queue.shift();
+        return this.inFlight;
     }
-  }
 
-  get pendingCount(): number {
-    return this.queue.length;
-  }
+    private async drain(): Promise<void> {
+        while (this.queue.length > 0) {
+            const entry = this.queue[0];
+            try {
+                await this.client.post("blockpy/log_event", {
+                    event_type: entry.event_type,
+                    file_path: entry.file_path,
+                    category: entry.category,
+                    label: entry.label,
+                    message: entry.message,
+                    extended: entry.extended,
+                });
+            } catch {
+                // Leave the entry queued; a later log()/flush() retries.
+                return;
+            }
+            this.queue.shift();
+        }
+    }
+
+    get pendingCount(): number {
+        return this.queue.length;
+    }
 }

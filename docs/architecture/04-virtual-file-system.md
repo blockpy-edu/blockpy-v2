@@ -32,27 +32,27 @@ namespaces during deserialization (Story 4.2).
 ```ts
 // src/vfs/types.ts
 export type Namespace =
-  | 'student'
-  | 'instructor'
-  | 'starting'
-  | 'hidden'
-  | 'readOnly'
-  | 'secret'
-  | 'generated';
+    | "student"
+    | "instructor"
+    | "starting"
+    | "hidden"
+    | "readOnly"
+    | "secret"
+    | "generated";
 
 export interface VfsFile {
-  name: string; // display name, no sigil ("answer.py")
-  namespace: Namespace;
-  content: string;
-  binary?: Uint8Array; // uploads/images
-  origin: 'column' | 'bundle' | 'generated' | 'upload';
+    name: string; // display name, no sigil ("answer.py")
+    namespace: Namespace;
+    content: string;
+    binary?: Uint8Array; // uploads/images
+    origin: "column" | "bundle" | "generated" | "upload";
 }
 
 export interface Vfs {
-  list(viewer: Role): VfsFile[]; // visibility-filtered
-  read(name: string, ns?: Namespace): VfsFile | null;
-  write(name: string, content: string): WriteResult; // enforces writability
-  resolveForRuntime(): RuntimeFileMap; // doc 05 §2
+    list(viewer: Role): VfsFile[]; // visibility-filtered
+    read(name: string, ns?: Namespace): VfsFile | null;
+    write(name: string, content: string): WriteResult; // enforces writability
+    resolveForRuntime(): RuntimeFileMap; // doc 05 §2
 }
 ```
 

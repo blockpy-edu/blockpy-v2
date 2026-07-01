@@ -1,57 +1,57 @@
 .panel {
-  padding: 0.5rem 0.75rem;
+    padding: 0.5rem 0.75rem;
 }
 
 .header {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .title {
-  margin: 0;
-  font-size: 1.0625rem;
+    margin: 0;
+    font-size: 1.0625rem;
 }
 
 .position {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
 }
 
 .meta {
-  display: flex;
-  gap: 0.75rem;
-  margin: 0.25rem 0 0;
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
+    display: flex;
+    gap: 0.75rem;
+    margin: 0.25rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
 }
 
 .status {
-  font-weight: 600;
+    font-weight: 600;
 }
 
 .statusGraded {
-  color: var(--color-success);
+    color: var(--color-success);
 }
 
 .statusComplete {
-  color: var(--color-info);
+    color: var(--color-info);
 }
 
 .instructions {
-  margin: 0.75rem 0 0;
-  font-size: 0.875rem;
-  line-height: 1.55;
+    margin: 0.75rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.55;
 }
 
 .unsupported {
-  margin: 0.75rem 0 0;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-alt);
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
+    margin: 0.75rem 0 0;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-alt);
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
 }
