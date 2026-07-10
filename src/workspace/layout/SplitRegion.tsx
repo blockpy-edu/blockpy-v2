@@ -9,6 +9,7 @@ interface SplitRegionProps {
     node: SplitNode;
     regionPath: string;
     renderPanel: (panelId: PanelId) => ReactNode;
+    contentSized?: boolean;
 }
 
 const KEYBOARD_STEP_PERCENT = 5;
@@ -35,7 +36,12 @@ function isCollapsedPanel(node: RegionNode, collapsed: Partial<Record<PanelId, b
     return node.kind === "panel" && collapsed[node.panelId] === true;
 }
 
-export function SplitRegion({ node, regionPath, renderPanel }: SplitRegionProps) {
+export function SplitRegion({
+    node,
+    regionPath,
+    renderPanel,
+    contentSized = false,
+}: SplitRegionProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const dragStartRef = useRef<{ position: number; sizes: number[] } | null>(null);
     const [activeSeparator, setActiveSeparator] = useState<number | null>(null);
@@ -94,15 +100,22 @@ export function SplitRegion({ node, regionPath, renderPanel }: SplitRegionProps)
     return (
         <div
             ref={containerRef}
-            className={`${styles.region} ${isRow ? styles.row : styles.column}`}
+            className={`${styles.region} ${isRow ? styles.row : styles.column} ${
+                contentSized ? styles.regionContentSized : ""
+            }`}
         >
             {node.children.map((child, index) => {
                 const childPath = `${regionPath}.${index}`;
                 const childCollapsed = isCollapsedPanel(child, collapsed);
                 const paneClass = childCollapsed
-                    ? `${styles.pane} ${styles.paneCollapsed}`
-                    : styles.pane;
-                const paneStyle = { "--pane-size": `${sizes[index]}%` } as React.CSSProperties;
+                    ? `${styles.pane} ${styles.paneCollapsed} ${
+                          contentSized ? styles.paneContentSized : ""
+                      }`
+                    : `${styles.pane} ${contentSized ? styles.paneContentSized : ""}`;
+                const paneStyle =
+                    contentSized && !isRow
+                        ? undefined
+                        : ({ "--pane-size": `${sizes[index]}%` } as React.CSSProperties);
 
                 const separatorIndex = index - 1;
                 const separatorDisabled =
@@ -150,6 +163,7 @@ export function SplitRegion({ node, regionPath, renderPanel }: SplitRegionProps)
                                 node={child}
                                 regionPath={childPath}
                                 renderPanel={renderPanel}
+                                contentSized={contentSized}
                             />
                         )}
                     </div>,

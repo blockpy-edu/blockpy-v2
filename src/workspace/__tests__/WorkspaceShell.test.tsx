@@ -68,7 +68,7 @@ describe("WorkspaceShell", () => {
         expect(screen.getByRole("heading", { name: "Feedback" })).toBeInTheDocument();
         expect(screen.queryByRole("heading", { name: "Task" })).not.toBeInTheDocument();
 
-        await user.click(screen.getByRole("button", { name: "Exit fullscreen" }));
+        await user.click(screen.getByRole("button", { name: "Exit fullscreen Feedback" }));
         expect(screen.getByRole("heading", { name: "Task" })).toBeInTheDocument();
     });
 

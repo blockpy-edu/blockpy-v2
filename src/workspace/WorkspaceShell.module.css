@@ -3,6 +3,12 @@
     flex-direction: column;
     height: 100%;
     min-height: 0;
+    overflow-x: hidden;
+}
+
+.shellContent {
+    height: auto;
+    min-height: 100%;
 }
 
 .toolbar {
@@ -86,4 +92,11 @@
 .main {
     flex: 1;
     min-height: 0;
+    overflow: hidden;
+}
+
+.mainContent {
+    flex: 0 0 auto;
+    overflow-x: hidden;
+    overflow-y: visible;
 }

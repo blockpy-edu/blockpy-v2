@@ -15,6 +15,7 @@ describe("embed config", () => {
         expect(resolved.initialState.assignment.id).toBe("a-1");
         expect(resolved.initialState.assignment.instructions.length).toBeGreaterThan(0);
         expect(resolved.initialState.submission.id).toBe("s-1");
+        expect(resolved.initialState.display.sizingMode).toBe("stretch");
         expect(resolved.initialState.submission.code).toBe(
             resolved.initialState.assignment.startingCode,
         );
@@ -60,5 +61,16 @@ describe("embed config", () => {
 
         expect(correct).toBe(true);
         expect(isCorrectEvaluator).toHaveBeenCalledTimes(1);
+    });
+
+    it("supports content sizing mode in display config", () => {
+        const resolved = resolveBlockPyConfig({
+            display: {
+                sizingMode: "content",
+            },
+        });
+
+        expect(resolved.initialState.display.sizingMode).toBe("content");
+        expect(resolved.initialState.display.readOnly).toBe(false);
     });
 });

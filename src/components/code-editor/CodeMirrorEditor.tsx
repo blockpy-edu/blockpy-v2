@@ -9,6 +9,7 @@ import {
 import { EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { python } from "@codemirror/lang-python";
+import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
 
@@ -17,6 +18,8 @@ interface CodeMirrorEditorProps {
     onChange: (value: string) => void;
     readOnly?: boolean;
     className?: string;
+    /** Syntax highlighting language; defaults to Python. */
+    language?: "python" | "typescript";
 }
 
 export function CodeMirrorEditor({
@@ -24,6 +27,7 @@ export function CodeMirrorEditor({
     onChange,
     readOnly = false,
     className,
+    language = "python",
 }: CodeMirrorEditorProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const viewRef = useRef<EditorView | null>(null);
@@ -49,7 +53,7 @@ export function CodeMirrorEditor({
                 drawSelection(),
                 highlightActiveLine(),
                 keymap.of([...defaultKeymap, ...historyKeymap]),
-                python(),
+                language === "typescript" ? javascript({ typescript: true }) : python(),
                 oneDark,
                 syntaxHighlighting(defaultHighlightStyle),
                 EditorView.updateListener.of((update) => {
@@ -60,7 +64,9 @@ export function CodeMirrorEditor({
                 EditorState.readOnly.of(readOnly),
                 EditorView.theme({
                     "&": { height: "100%" },
-                    ".cm-scroller": { overflow: "auto" },
+                    ".cm-editor": { height: "100%" },
+                    ".cm-scroller": { height: "100%", overflow: "auto" },
+                    ".cm-content": { minHeight: "100%" },
                 }),
             ],
         });

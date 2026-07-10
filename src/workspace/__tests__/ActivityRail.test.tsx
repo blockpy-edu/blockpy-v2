@@ -60,6 +60,10 @@ function railButton(name: RegExp) {
     return within(rail).getByRole("button", { name });
 }
 
+function jumpTo() {
+    return screen.getByRole("combobox", { name: "Jump to task" });
+}
+
 describe("activity navigation", () => {
     beforeEach(() => {
         localStorage.clear();
@@ -71,10 +75,9 @@ describe("activity navigation", () => {
         expect(screen.queryByRole("navigation", { name: "Activity tasks" })).toBeNull();
     });
 
-    it("shows every task with the focused one marked as the current step", () => {
+    it("shows task navigation controls with the first task selected", () => {
         renderActivity();
-        expect(railButton(/Warmup/)).toHaveAttribute("aria-current", "step");
-        expect(railButton(/Reading time/)).not.toHaveAttribute("aria-current");
+        expect(jumpTo()).toHaveValue("1");
         expect(screen.getByText("Week 3 Homework")).toBeInTheDocument();
     });
 
@@ -82,7 +85,7 @@ describe("activity navigation", () => {
         const user = userEvent.setup();
         renderActivity();
 
-        await user.click(railButton(/Reading time/));
+        await user.selectOptions(jumpTo(), "2");
 
         expect(workspace.activityStore.getState().focusedTaskId).toBe(2);
         expect(window.location.hash).toBe("#task=2");
@@ -93,7 +96,7 @@ describe("activity navigation", () => {
         expect(within(taskPanel).getByText("Read all about loops.")).toBeInTheDocument();
 
         await user.selectOptions(screen.getByLabelText("Layout"), "classic");
-        await user.click(railButton(/Warmup/));
+        await user.selectOptions(jumpTo(), "1");
         const answer = readFile(workspace.vfsStore.getState().files, MAIN_STUDENT_FILE, "student");
         expect(answer?.content).toBe("a = 1\n");
     });
@@ -102,15 +105,14 @@ describe("activity navigation", () => {
         const user = userEvent.setup();
         renderActivity();
 
-        const challenge = railButton(/Challenge/);
-        expect(challenge).toBeDisabled();
-        expect(challenge).toHaveAttribute("title", "Complete “Warmup” first.");
+        const options = within(jumpTo()).getAllByRole("option");
+        expect(options[2]).toBeDisabled();
 
         act(() => {
             workspace.activityStore.getState().setStatus(1, "complete");
             workspace.activityStore.getState().setStatus(2, "graded");
         });
-        await user.click(railButton(/Challenge/));
+        await user.selectOptions(jumpTo(), "3");
         expect(workspace.activityStore.getState().focusedTaskId).toBe(3);
     });
 
@@ -125,10 +127,10 @@ describe("activity navigation", () => {
         renderActivity();
         expect(screen.getByLabelText("Layout")).toHaveValue("classic");
 
-        await user.click(railButton(/Reading time/));
+        await user.selectOptions(jumpTo(), "2");
         expect(screen.getByLabelText("Layout")).toHaveValue("reading");
 
-        await user.click(railButton(/Warmup/));
+        await user.selectOptions(jumpTo(), "1");
         expect(screen.getByLabelText("Layout")).toHaveValue("classic");
     });
 
@@ -137,8 +139,82 @@ describe("activity navigation", () => {
         renderActivity();
 
         await user.selectOptions(screen.getByLabelText("Layout"), "sideBySide");
-        await user.click(railButton(/Reading time/));
+        await user.selectOptions(jumpTo(), "2");
 
         expect(screen.getByLabelText("Layout")).toHaveValue("sideBySide");
+    });
+
+    it("navigates forward and backward with sequential buttons", async () => {
+        const user = userEvent.setup();
+        renderActivity();
+
+        const nav = screen.getByRole("group", { name: "Task navigation" });
+        const next = within(nav).getByRole("button", { name: "Next task" });
+        const prev = within(nav).getByRole("button", { name: "Previous task" });
+
+        // Previous should be disabled at the start
+        expect(prev).toBeDisabled();
+
+        await user.click(next);
+        expect(workspace.activityStore.getState().focusedTaskId).toBe(2);
+
+        await user.click(prev);
+        expect(workspace.activityStore.getState().focusedTaskId).toBe(1);
+    });
+
+    it("navigates to first and last tasks with start/finish buttons", async () => {
+        const user = userEvent.setup();
+        renderActivity();
+
+        const nav = screen.getByRole("group", { name: "Task navigation" });
+        const first = within(nav).getByRole("button", { name: "First task" });
+        const last = within(nav).getByRole("button", { name: "Last task" });
+
+        // First is disabled when already there
+        expect(first).toBeDisabled();
+
+        // Last navigates to the last *navigable* task (task 2 — task 3 is gated)
+        await user.click(last);
+        expect(workspace.activityStore.getState().focusedTaskId).toBe(2);
+
+        // Now first goes back to the beginning
+        await user.click(first);
+        expect(workspace.activityStore.getState().focusedTaskId).toBe(1);
+    });
+
+    it("jump-to select navigates directly to a task", async () => {
+        const user = userEvent.setup();
+        renderActivity();
+
+        const jumpSelect = jumpTo();
+        await user.selectOptions(jumpSelect, "2");
+
+        expect(workspace.activityStore.getState().focusedTaskId).toBe(2);
+    });
+
+    it("disables policy-gated tasks in the jump-to select", () => {
+        renderActivity();
+
+        const jumpSelect = jumpTo();
+        const options = within(jumpSelect).getAllByRole("option");
+        // Third option (Challenge) should be disabled
+        expect(options[2]).toBeDisabled();
+    });
+
+    it("enables last-task button once all tasks are navigable", async () => {
+        const user = userEvent.setup();
+        renderActivity();
+
+        act(() => {
+            workspace.activityStore.getState().setStatus(1, "complete");
+            workspace.activityStore.getState().setStatus(2, "graded");
+        });
+
+        const nav = screen.getByRole("group", { name: "Task navigation" });
+        const last = within(nav).getByRole("button", { name: "Last task" });
+        expect(last).not.toBeDisabled();
+
+        await user.click(last);
+        expect(workspace.activityStore.getState().focusedTaskId).toBe(3);
     });
 });

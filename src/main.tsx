@@ -2,6 +2,10 @@ import "./index.css";
 import { mountBlockPy } from "./mount";
 import type { BlockPyMountHandle } from "./mount";
 import type { BlockPyMountOptions } from "./types";
+import {
+    bakeryMixedAttachedQuizExample,
+    bakeryMixedExample,
+} from "./embed/examples/bakeryMixedExample";
 
 declare global {
     interface Window {
@@ -23,7 +27,17 @@ function demoOptions(): BlockPyMountOptions | undefined {
     if (!import.meta.env.DEV) {
         return undefined;
     }
-    if (new URLSearchParams(window.location.search).get("demo") !== "activity") {
+    const demo = new URLSearchParams(window.location.search).get("demo");
+    if (!demo) {
+        return undefined;
+    }
+    if (demo === "bakery-mixed") {
+        return bakeryMixedExample();
+    }
+    if (demo === "bakery-mixed-attached") {
+        return bakeryMixedAttachedQuizExample();
+    }
+    if (demo !== "activity") {
         return undefined;
     }
     const quizInstructions = JSON.stringify({

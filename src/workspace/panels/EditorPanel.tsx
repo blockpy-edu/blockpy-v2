@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { BlockPyEditor } from "../../components/code-editor/BlockPyEditor";
+import { CodeMirrorEditor } from "../../components/code-editor/CodeMirrorEditor";
 import { MAIN_STUDENT_FILE, STARTING_CODE_FILE, canWrite, readFile } from "../../vfs/vfs";
 import { focusedTask } from "../activity/activityStore";
 import { useActivityState, useVfsState, useWorkspace } from "../useWorkspace";
@@ -51,6 +52,11 @@ export function EditorPanel() {
 
     // Reading/quiz/explain/textbook tasks own their content; the code editor
     // shows an empty state instead (docs/architecture/02 §2.2).
+    if (kindType === "kettle") {
+        // TypeScript tasks edit answer.py in a text-only editor; there is no
+        // block representation for TypeScript.
+        return <TypeScriptFileEditor key={focusedTaskId} />;
+    }
     if (kindType !== "code" && kindType !== "unsupported") {
         return <p className={styles.missing}>There is no code in this task.</p>;
     }
@@ -60,6 +66,29 @@ export function EditorPanel() {
         return <BlockPyEditor key={`${focusedTaskId}-${externalRevision}`} config={editorConfig} />;
     }
     return <TextFileEditor name={activeFileName} />;
+}
+
+function TypeScriptFileEditor() {
+    const { vfsRole } = useWorkspace();
+    const file = useVfsState((state) => readFile(state.files, MAIN_STUDENT_FILE, "student"));
+    const externalRevision = useVfsState((state) => state.externalRevision);
+    const write = useVfsState((state) => state.write);
+
+    if (!file) {
+        return <p className={styles.missing}>File “{MAIN_STUDENT_FILE}” was not found.</p>;
+    }
+    const readOnly = !canWrite(file, vfsRole);
+    return (
+        <div className={styles.textEditor}>
+            <CodeMirrorEditor
+                key={externalRevision}
+                value={file.content}
+                language="typescript"
+                readOnly={readOnly}
+                onChange={(next) => write(MAIN_STUDENT_FILE, next, vfsRole)}
+            />
+        </div>
+    );
 }
 
 function TextFileEditor({ name }: { name: string }) {

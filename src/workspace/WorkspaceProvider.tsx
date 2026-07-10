@@ -3,8 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useStore } from "zustand";
 import { ApiProvider } from "../api/ApiProvider";
-import { BlockPyApiClient, HttpTransport } from "../api/client";
+import { BlockPyApiClient, HttpTransport, UrlMapTransport } from "../api/client";
 import type { Transport } from "../api/client";
+import { loadActivityFromServer } from "../api/bootstrap";
+import type { LoadedTask, RemoteTaskRequest } from "../api/bootstrap";
 import { createOfflineSeed, OfflineTransport } from "../api/offline";
 import type { OfflineActivitySeed, OfflineSeed } from "../api/offline";
 import { EventLog } from "../api/endpoints/events";
@@ -12,8 +14,11 @@ import type { AssignmentGroupCategory, AssignmentType } from "../api/types";
 import { buildActivity, taskStatusFromSubmission } from "../domain/activity";
 import type { ActivityMember, TaskStatus } from "../domain/activity";
 import { fromAssignmentJson } from "../domain/assignment";
+import type { Assignment } from "../domain/assignment";
 import { fromSubmissionJson } from "../domain/submission";
+import type { Submission } from "../domain/submission";
 import { EngineHost } from "../engine/EngineHost";
+import { KettleEngine } from "../services/typescript/kettleEngine";
 import { serializeBundle } from "../vfs/bundle";
 import type { SaveIds } from "../vfs/savePlan";
 import type { VfsRole } from "../vfs/types";
@@ -51,8 +56,24 @@ function vfsRoleFromConfig(config: BlockPyResolvedConfig): VfsRole {
     return role === "instructor" || role === "ta" || role === "admin" ? "instructor" : "student";
 }
 
+/**
+ * Builds the server transport, when the mount is online. Legacy
+ * blockpy-server templates provide a per-endpoint URL map; newer embeds may
+ * provide a single base URL instead.
+ */
+function serverTransport(config: BlockPyResolvedConfig): Transport | null {
+    const { urls, accessToken } = config.initialState.server;
+    if (urls.loadAssignment || urls.saveFile || urls.logEvent) {
+        return new UrlMapTransport(urls, accessToken);
+    }
+    if (urls.base) {
+        return new HttpTransport(urls.base, accessToken);
+    }
+    return null;
+}
+
 function isOffline(config: BlockPyResolvedConfig): boolean {
-    return !config.initialState.server.urls.base;
+    return serverTransport(config) === null;
 }
 
 function bundleFromRecord(record: Record<string, string>): string {
@@ -75,6 +96,10 @@ const ASSIGNMENT_TYPES: readonly string[] = [
 ];
 
 function parseAssignmentType(raw: string | undefined): AssignmentType {
+    // blockpy-server treats "typescript" as an alias for kettle assignments.
+    if (raw === "typescript") {
+        return "kettle";
+    }
     return raw && ASSIGNMENT_TYPES.includes(raw) ? (raw as AssignmentType) : "blockpy";
 }
 
@@ -230,12 +255,147 @@ function activitySetup(config: BlockPyResolvedConfig): ActivitySetup {
 
 const PRESET_FOR_KIND: Record<TaskKind["type"], LayoutPresetId> = {
     code: "classic",
+    kettle: "classic",
     reading: "reading",
     quiz: "quiz",
     explain: "reading",
     textbookPage: "reading",
     unsupported: "classic",
 };
+
+/** Task/transport data every mount resolves to before instances exist. */
+interface ResolvedSetup {
+    members: ActivityMember[];
+    group: { id: number; name: string; category: AssignmentGroupCategory } | null;
+    runtimes: Map<number, TaskRuntime>;
+    statuses: Record<number, TaskStatus>;
+    transport: Transport;
+}
+
+/** Sync path: seeds from the mount config (offline demos, inline content). */
+function localSetup(config: BlockPyResolvedConfig): ResolvedSetup {
+    const setup = activitySetup(config);
+    const transport =
+        serverTransport(config) ?? new OfflineTransport(setup.offlineSeed, setup.offlineStorageKey);
+    return {
+        members: setup.members,
+        group: setup.group,
+        runtimes: setup.runtimes,
+        statuses: setup.statuses,
+        transport,
+    };
+}
+
+/**
+ * The assignments this mount should load live from the server: present only
+ * when a server transport exists and the mount carries numeric ids
+ * (the drop-in path — blockpy-server templates render ids, not content).
+ */
+function remoteTaskRequests(config: BlockPyResolvedConfig): RemoteTaskRequest[] | null {
+    if (isOffline(config)) {
+        return null;
+    }
+    const { activity, assignment } = config.initialState;
+    if (activity) {
+        const requests: RemoteTaskRequest[] = [];
+        for (const task of activity.tasks) {
+            const id = parseId(task.id);
+            if (id === null || task.startingCode !== undefined || task.onRun !== undefined) {
+                // Inline content wins; treat the whole mount as config-seeded.
+                return null;
+            }
+            requests.push({
+                assignmentId: id,
+                policy: task.policy ? JSON.stringify(task.policy) : "",
+            });
+        }
+        return requests.length > 0 ? requests : null;
+    }
+    const id = parseId(assignment.id);
+    return id === null ? null : [{ assignmentId: id, policy: "" }];
+}
+
+/** Read-only stand-in when the server returns no submission. */
+function placeholderSubmission(assignment: Assignment): Submission {
+    return {
+        id: 0,
+        code: assignment.startingCode,
+        extraFiles: "",
+        url: "",
+        endpoint: "",
+        score: 0,
+        correct: false,
+        submissionStatus: "Started",
+        gradingStatus: "NotReady",
+        assignmentId: assignment.id,
+        assignmentGroupId: null,
+        assignmentVersion: assignment.version,
+        courseId: null,
+        userId: null,
+        version: 0,
+        dateStarted: null,
+        dateSubmitted: null,
+        dateDue: null,
+        dateLocked: null,
+        timeLimit: null,
+        feedback: null,
+    };
+}
+
+/** Async path: assignments + submissions fetched from blockpy-server. */
+async function remoteSetup(
+    config: BlockPyResolvedConfig,
+    requests: RemoteTaskRequest[],
+    transport: Transport,
+): Promise<ResolvedSetup> {
+    const { user, activity } = config.initialState;
+    const courseId = parseId(user.courseId);
+    const bootstrapClient = new BlockPyApiClient(transport, () => ({
+        assignment_id: null,
+        assignment_group_id: parseId(user.groupId),
+        course_id: courseId,
+        submission_id: null,
+        user_id: parseId(user.id),
+        version: 0,
+    }));
+    const loaded: LoadedTask[] = await loadActivityFromServer(bootstrapClient, requests, courseId);
+
+    const runtimes = new Map<number, TaskRuntime>();
+    const statuses: Record<number, TaskStatus> = {};
+    const members: ActivityMember[] = loaded.map((task, index) => {
+        const submission = task.submission ?? placeholderSubmission(task.assignment);
+        runtimes.set(
+            task.assignment.id,
+            createTaskRuntime(task.assignment, submission, {
+                submissionId: task.submission?.id ?? null,
+                assignmentId: task.assignment.id,
+            }),
+        );
+        if (task.submission) {
+            statuses[task.assignment.id] = taskStatusFromSubmission(
+                task.submission,
+                task.assignment.startingCode,
+            );
+        }
+        return { assignment: task.assignment, position: index, policy: task.policy };
+    });
+
+    const groupId = activity ? parseId(activity.id) : parseId(user.groupId);
+    return {
+        members,
+        group:
+            groupId !== null && members.length > 1
+                ? {
+                      id: groupId,
+                      name: activity?.name ?? "Assignment group",
+                      category: parseGroupCategory(activity?.category),
+                  }
+                : null,
+        runtimes,
+        statuses,
+        transport,
+    };
+}
 
 interface WorkspaceInstances {
     config: BlockPyResolvedConfig;
@@ -250,8 +410,7 @@ interface WorkspaceInstances {
     queryClient: QueryClient;
 }
 
-function createInstances(config: BlockPyResolvedConfig): WorkspaceInstances {
-    const setup = activitySetup(config);
+function createInstances(config: BlockPyResolvedConfig, setup: ResolvedSetup): WorkspaceInstances {
     const activity = buildActivity(setup.group, setup.members);
     const activityStore = createActivityStore(activity, {
         focusedTaskId: taskIdFromHash(window.location.hash) ?? undefined,
@@ -268,10 +427,7 @@ function createInstances(config: BlockPyResolvedConfig): WorkspaceInstances {
     };
 
     const { user, submission } = config.initialState;
-    const baseUrl = config.initialState.server.urls.base;
-    const transport: Transport = baseUrl
-        ? new HttpTransport(baseUrl)
-        : new OfflineTransport(setup.offlineSeed, setup.offlineStorageKey);
+    const transport = setup.transport;
     const apiClient = new BlockPyApiClient(transport, () => ({
         assignment_id: focusedRuntime().saveIds.assignmentId,
         assignment_group_id: activity.groupId ?? parseId(user.groupId),
@@ -282,15 +438,25 @@ function createInstances(config: BlockPyResolvedConfig): WorkspaceInstances {
     }));
     const events = new EventLog(apiClient);
     const runStore = createRunStore();
+    // The TypeScript engine is only constructed when the activity actually
+    // contains kettle tasks; the compiler itself loads lazily on first run.
+    const hasKettle = activity.tasks.some((task) => task.kind.type === "kettle");
     const runCoordinator = new RunCoordinator({
         engine: new EngineHost(),
-        getRuntime: focusedRuntime,
+        kettleEngine: hasKettle ? new KettleEngine() : undefined,
+        getRuntime: () => ({
+            ...focusedRuntime(),
+            kind: focusedTask(activityStore.getState())?.kind.type,
+        }),
         runStore,
         client: apiClient,
         events,
         onGraded: (_score, correct) => {
             const state = activityStore.getState();
             state.setStatus(state.focusedTaskId, correct ? "graded" : "inProgress");
+            if (correct) {
+                config.callbacks.onTaskCorrect?.(state.focusedTaskId);
+            }
         },
     });
 
@@ -313,9 +479,76 @@ function createInstances(config: BlockPyResolvedConfig): WorkspaceInstances {
 }
 
 export function WorkspaceProvider({ config, children }: WorkspaceProviderProps) {
-    // Stores and clients are created once per mount so multiple BlockPy
-    // instances can coexist on a single page (docs/architecture/03 §1).
-    const [instances] = useState<WorkspaceInstances>(() => createInstances(config));
+    // Drop-in server mounts (numeric ids + a server URL) bootstrap from the
+    // server; everything else resolves synchronously from the mount config.
+    const [instances, setInstances] = useState<WorkspaceInstances | null>(() =>
+        remoteTaskRequests(config) ? null : createInstances(config, localSetup(config)),
+    );
+    const [bootstrapError, setBootstrapError] = useState<string | null>(null);
+    const [retryToken, setRetryToken] = useState(0);
+
+    useEffect(() => {
+        if (instances) {
+            return;
+        }
+        const requests = remoteTaskRequests(config);
+        const transport = serverTransport(config);
+        if (!requests || !transport) {
+            return;
+        }
+        let cancelled = false;
+        remoteSetup(config, requests, transport)
+            .then((setup) => {
+                if (!cancelled) {
+                    setInstances(createInstances(config, setup));
+                }
+            })
+            .catch((error: unknown) => {
+                if (!cancelled) {
+                    setBootstrapError(
+                        error instanceof Error ? error.message : "Unable to reach the server",
+                    );
+                }
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [config, instances, retryToken]);
+
+    if (!instances) {
+        if (bootstrapError) {
+            return (
+                <div role="alert">
+                    <p>BlockPy could not load this assignment: {bootstrapError}</p>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setBootstrapError(null);
+                            setRetryToken((token) => token + 1);
+                        }}
+                    >
+                        Try again
+                    </button>
+                </div>
+            );
+        }
+        return (
+            <p role="status" aria-live="polite">
+                Loading assignment…
+            </p>
+        );
+    }
+
+    return <ReadyWorkspaceProvider instances={instances}>{children}</ReadyWorkspaceProvider>;
+}
+
+function ReadyWorkspaceProvider({
+    instances,
+    children,
+}: {
+    instances: WorkspaceInstances;
+    children: ReactNode;
+}) {
     const { activityStore, layoutStore, runtimes } = instances;
     const focusedTaskId = useStore(activityStore, (state) => state.focusedTaskId);
     const multiTask = useStore(activityStore, (state) => state.activity.tasks.length > 1);

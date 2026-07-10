@@ -8,6 +8,7 @@ import styles from "./LayoutRoot.module.css";
 
 interface LayoutRootProps {
     renderPanel: (panelId: PanelId) => ReactNode;
+    contentSized?: boolean;
 }
 
 /** Below this width (px) the layout falls back to a vertically stacked list. */
@@ -32,7 +33,7 @@ function useIsNarrow(ref: React.RefObject<HTMLDivElement | null>): boolean {
     return isNarrow;
 }
 
-export function LayoutRoot({ renderPanel }: LayoutRootProps) {
+export function LayoutRoot({ renderPanel, contentSized = false }: LayoutRootProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const presetId = useLayoutState((state) => state.presetId);
     const fullscreenPanelId = useLayoutState((state) => state.fullscreenPanelId);
@@ -43,7 +44,7 @@ export function LayoutRoot({ renderPanel }: LayoutRootProps) {
     let content: ReactNode;
     if (fullscreenPanelId !== null) {
         content = <div className={styles.fullscreenPane}>{renderPanel(fullscreenPanelId)}</div>;
-    } else if (isNarrow) {
+    } else if (!contentSized && isNarrow) {
         content = collectPanelIds(preset.regions).map((panelId) => (
             <div key={panelId} className={styles.stackedPane}>
                 {renderPanel(panelId)}
@@ -52,15 +53,24 @@ export function LayoutRoot({ renderPanel }: LayoutRootProps) {
     } else if (preset.regions.kind === "panel") {
         content = renderPanel(preset.regions.panelId);
     } else {
-        content = <SplitRegion node={preset.regions} regionPath="root" renderPanel={renderPanel} />;
+        content = (
+            <SplitRegion
+                node={preset.regions}
+                regionPath="root"
+                renderPanel={renderPanel}
+                contentSized={contentSized}
+            />
+        );
     }
 
     return (
         <div
             ref={containerRef}
             className={
-                isNarrow && fullscreenPanelId === null
-                    ? `${styles.root} ${styles.stacked}`
+                fullscreenPanelId === null
+                    ? `${styles.root} ${contentSized ? styles.contentSized : ""} ${
+                          !contentSized && isNarrow ? styles.stacked : ""
+                      }`.trim()
                     : styles.root
             }
         >

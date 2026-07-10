@@ -2,11 +2,19 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
+    min-height: 0;
     overflow: hidden;
     background-color: var(--color-bg);
     font-family: var(--font-sans);
     font-size: 14px;
     color: var(--color-text);
+}
+
+.appContent {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: visible;
 }
 
 .app-main {

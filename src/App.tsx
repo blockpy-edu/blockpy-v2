@@ -8,8 +8,9 @@ interface AppProps {
 }
 
 function App({ config }: AppProps) {
+    const sizingMode = config.initialState.display.sizingMode;
     return (
-        <div className="app">
+        <div className={sizingMode === "content" ? "app appContent" : "app"}>
             <WorkspaceProvider config={config}>
                 <WorkspaceShell />
             </WorkspaceProvider>

@@ -20,7 +20,7 @@ const DEFAULT_STATE: BlockPyInitialState = {
     assignment: {
         id: "",
         name: "Python Editor",
-        instructions: "Write Python code using blocks or text. Click Run to execute.",
+        instructions: "Write Python code using blocks or text. Click Run to execute.".repeat(10),
         url: "",
         type: "practice",
         points: 0,
@@ -50,6 +50,7 @@ const DEFAULT_STATE: BlockPyInitialState = {
     },
     display: {
         readOnly: false,
+        sizingMode: "stretch",
     },
     runtime: {
         partId: "",

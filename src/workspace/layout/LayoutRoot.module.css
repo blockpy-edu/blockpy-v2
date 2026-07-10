@@ -8,12 +8,20 @@
 .stacked {
     display: flex;
     flex-direction: column;
+    overflow-x: hidden;
     overflow-y: auto;
+}
+
+.contentSized {
+    height: auto;
+    min-height: 0;
+    overflow-y: visible;
 }
 
 .stackedPane {
     flex-shrink: 0;
     min-height: 200px;
+    min-width: 0;
 }
 
 .fullscreenPane {

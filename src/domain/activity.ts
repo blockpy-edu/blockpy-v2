@@ -40,6 +40,7 @@ export function parseMembershipPolicy(raw: string): MembershipPolicy {
 
 export type TaskKind =
     | { type: "code"; settings: AssignmentSettings }
+    | { type: "kettle"; settings: AssignmentSettings }
     | { type: "reading"; content: string }
     | { type: "quiz"; instructions: string }
     | { type: "explain" }
@@ -50,6 +51,8 @@ export function taskKindFromAssignment(assignment: Assignment): TaskKind {
     switch (assignment.type) {
         case "blockpy":
             return { type: "code", settings: parseAssignmentSettings(assignment.settings) };
+        case "kettle":
+            return { type: "kettle", settings: parseAssignmentSettings(assignment.settings) };
         case "reading":
             return { type: "reading", content: assignment.instructions };
         case "quiz":

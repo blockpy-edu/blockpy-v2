@@ -13,14 +13,18 @@ import type { EventLog } from "../../api/endpoints/events";
 import { MAIN_STUDENT_FILE, readFile, resolveForRuntime } from "../../vfs/vfs";
 import type { SaveIds } from "../../vfs/savePlan";
 import type { VfsStore } from "../../vfs/vfsStore";
+import type { TaskKind } from "../../domain/activity";
 import type { RunStore } from "./runStore";
 
 const ON_RUN_FILE = "on_run.py";
 
 export interface RunCoordinatorDeps {
+    /** Python (Pyodide) engine; used for every kind except kettle. */
     engine: EngineLike;
-    /** Resolves the focused task's VFS and save ids at run time. */
-    getRuntime: () => { vfsStore: VfsStore; saveIds: SaveIds };
+    /** TypeScript engine for kettle tasks; created lazily by the provider. */
+    kettleEngine?: EngineLike;
+    /** Resolves the focused task's VFS, save ids, and kind at run time. */
+    getRuntime: () => { vfsStore: VfsStore; saveIds: SaveIds; kind?: TaskKind["type"] };
     runStore: RunStore;
     client: BlockPyApiClient;
     events: EventLog;
@@ -38,8 +42,8 @@ export class RunCoordinator {
 
     constructor(deps: RunCoordinatorDeps) {
         this.deps = deps;
-        deps.engine.subscribe({
-            onStream: (event) => {
+        const listener = {
+            onStream: (event: { kind: string; text: string }) => {
                 if (this.suppressStreams) {
                     return;
                 }
@@ -54,14 +58,24 @@ export class RunCoordinator {
                             : "result";
                 this.deps.runStore.getState().append(kind, event.text, this.epoch);
             },
-            onStatus: (status) => {
+            onStatus: (status: string) => {
                 if (status === "loading") {
                     this.deps.runStore.getState().setStatus("loading");
                 } else if (status === "failed") {
                     this.deps.runStore.getState().setStatus("failed");
                 }
             },
-        });
+        };
+        deps.engine.subscribe(listener);
+        deps.kettleEngine?.subscribe(listener);
+    }
+
+    /** The engine responsible for the focused task's language. */
+    private engineFor(kind: TaskKind["type"] | undefined): EngineLike {
+        if (kind === "kettle" && this.deps.kettleEngine) {
+            return this.deps.kettleEngine;
+        }
+        return this.deps.engine;
     }
 
     /** Starts a fresh run: clears collected inputs and bumps the epoch. */
@@ -83,7 +97,8 @@ export class RunCoordinator {
         const run = this.deps.runStore.getState();
         run.append("echo", `>>> ${code}`, this.epoch);
         run.setStatus("running");
-        const result = await this.deps.engine.evaluate(code);
+        const engine = this.engineFor(this.deps.getRuntime().kind);
+        const result = await engine.evaluate(code);
         if (result.outcome.status === "runtime-error") {
             run.append("stderr", result.outcome.error.message, this.epoch);
         }
@@ -99,6 +114,7 @@ export class RunCoordinator {
 
     interrupt(): void {
         this.deps.engine.interrupt();
+        this.deps.kettleEngine?.interrupt();
         const run = this.deps.runStore.getState();
         run.append("notice", "Stopped. Restarting Python…", this.epoch);
         run.setStatus("ready");
@@ -106,8 +122,9 @@ export class RunCoordinator {
     }
 
     private async attempt(isFreshRun: boolean): Promise<void> {
-        const { engine, runStore } = this.deps;
-        const { vfsStore, saveIds } = this.deps.getRuntime();
+        const { runStore } = this.deps;
+        const { vfsStore, saveIds, kind } = this.deps.getRuntime();
+        const engine = this.engineFor(kind);
         const run = runStore.getState();
         const { files } = vfsStore.getState();
 

@@ -18,6 +18,7 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 function TaskBody({ task }: { task: ActivityTask }) {
     switch (task.kind.type) {
         case "code":
+        case "kettle":
             return task.instructions ? (
                 <Markdown className={styles.instructions} source={task.instructions} />
             ) : null;

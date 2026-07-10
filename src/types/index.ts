@@ -123,6 +123,13 @@ export interface BlockPySubmissionConfig {
 }
 
 export interface BlockPyServerConfig {
+    /**
+     * Endpoint URLs. Either a single `base` server root, or the legacy
+     * per-endpoint map rendered by blockpy-server templates
+     * (loadAssignment, saveFile, logEvent, updateSubmission, …).
+     * When any server URL is present and the mount carries numeric ids,
+     * assignments and submissions are loaded live from the server.
+     */
     urls: Record<string, string>;
     accessToken: string;
 }
@@ -159,6 +166,11 @@ export interface BlockPyActivityConfig {
 
 export interface BlockPyDisplayConfig {
     readOnly: boolean;
+    /**
+     * stretch: fill the host area and stretch inner panes
+     * content: stack panes vertically, allow content-driven height, avoid horizontal scroll
+     */
+    sizingMode: "stretch" | "content";
 }
 
 export interface BlockPyRuntimeConfig {
@@ -193,6 +205,12 @@ export interface BlockPyLifecycleCallbacks {
     onRunComplete?: (context: BlockPyRunContext) => void;
     onRunSuccess?: (context: BlockPyRunContext) => void;
     isCorrectRun?: (context: BlockPyRunContext) => boolean;
+    /**
+     * Invoked when a task is graded fully correct. Maps to the legacy
+     * `callback.success` (markCorrect) hook the blockpy-server templates
+     * use to tick the assignment selector.
+     */
+    onTaskCorrect?: (assignmentId: number) => void;
 }
 
 export interface BlockPyMountOptions extends DeepPartial<Omit<BlockPyInitialState, "activity">> {

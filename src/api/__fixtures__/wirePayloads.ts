@@ -118,3 +118,13 @@ export const assignmentGroupJson: AssignmentGroupJson = {
     course_id: 12,
     version: 2,
 };
+
+/** Factory: a blockpy assignment payload with overrides. */
+export function makeAssignmentJson(overrides: Partial<AssignmentJson> = {}): AssignmentJson {
+    return { ...blockpyAssignmentJson, ...overrides };
+}
+
+/** Factory: a submission payload with overrides. */
+export function makeSubmissionJson(overrides: Partial<SubmissionJson> = {}): SubmissionJson {
+    return { ...submissionJson, ...overrides };
+}
